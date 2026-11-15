@@ -7,10 +7,13 @@ import {
   SPIKE_SECONDS, PRICES, REWARDS, createState, resetMatch,
 } from './state.js';
 import { WEAPONS } from './weapons.js';
+import { glowTexture } from './textures.js';
 
 const ROUND_END_SECONDS = 3.5;
 const TRACER_POOL = 8;
 const TRACER_LIFE = 0.09;
+const SPARK_POOL = 12;
+const SPARK_LIFE = 0.16;
 
 const _dir = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
@@ -18,11 +21,33 @@ const _noisePos = new THREE.Vector3();
 const _end = new THREE.Vector3();
 
 export function createGame(deps) {
-  const { scene, camera, world, player, weapons, bots, spike, grenades, audio, hud, input, random } = deps;
+  const { scene, camera, world, player, weapons, bots, allies, spike, grenades, audio, hud, input, random } = deps;
   const state = createState();
   const owned = { pistol: true, smg: false, rifle: false };
   const raycaster = new THREE.Raycaster();
   raycaster.far = 90;
+
+  // The round's team plan, called on the radio at round start: the site the Ember
+  // squad pushes. It can rotate once if the push bleeds, and the planted site
+  // overrides it. The planter is the teammate carrying the spike while the player
+  // is down (null while the player carries it).
+  let planSite = 'A';
+  let rotated = false;
+  let planter = null;
+
+  // Sight views both brains pick targets from. Built once — the position vectors
+  // are the movers' own, so they stay current; only the flags are refreshed each
+  // step. Ember views face the Rust brain, Rust views face the Ember brain.
+  const emberViews = [
+    { pos: player.state.position, alive: true, speed: 0, crouching: false, isPlayer: true, ref: null },
+    ...allies.items.map((ally) => ({
+      pos: ally.mover.position, alive: true, speed: 0, crouching: false, isPlayer: false, ref: ally,
+    })),
+  ];
+  const rustViews = bots.items.map((bot) => ({ pos: bot.mover.position, alive: true, ref: bot }));
+  // What each side's rays can hit: the world, plus the other side's bodies.
+  const rustRaycastTargets = [null, ...allies.hitMeshes, ...world.shootables];
+  const emberRaycastTargets = [...world.shootables, ...bots.hitMeshes];
 
   // Invisible box the bots shoot at; the player's own rays never include it.
   const playerHitbox = new THREE.Mesh(
@@ -30,6 +55,7 @@ export function createGame(deps) {
     new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }),
   );
   scene.add(playerHitbox);
+  rustRaycastTargets[0] = playerHitbox;
 
   // Tracer pool: stretched boxes, reused, never allocated in the loop.
   const tracers = [];
@@ -42,6 +68,32 @@ export function createGame(deps) {
     tracers.push({ mesh, life: 0 });
   }
   let tracerIndex = 0;
+
+  // Hit-spark pool: one additive glow sprite per impact, scaled up and faded in
+  // frame(). Pooled like the tracers; a spark is the flash a bullet makes when it
+  // lands on metal, concrete or a vest.
+  const sparks = [];
+  const sparkTexture = glowTexture();
+  for (let i = 0; i < SPARK_POOL; i += 1) {
+    const material = new THREE.SpriteMaterial({
+      map: sparkTexture, color: new THREE.Color('#ffd9a0'), transparent: true,
+      opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const mesh = new THREE.Sprite(material);
+    mesh.visible = false;
+    scene.add(mesh);
+    sparks.push({ mesh, life: 0 });
+  }
+  let sparkIndex = 0;
+
+  function spawnSpark(point) {
+    const spark = sparks[sparkIndex];
+    sparkIndex = (sparkIndex + 1) % SPARK_POOL;
+    spark.mesh.position.copy(point);
+    spark.mesh.scale.setScalar(0.14);
+    spark.life = SPARK_LIFE;
+    spark.mesh.visible = true;
+  }
 
   let elapsed = 0;
   let noise = null;
@@ -84,10 +136,10 @@ export function createGame(deps) {
     _dir.normalize();
     scene.updateMatrixWorld(true);
     raycaster.set(camera.position, _dir);
-    const targets = world.shootables.concat(bots.hitMeshes);
-    const hit = raycaster.intersectObjects(targets, false)[0];
+    const hit = raycaster.intersectObjects(emberRaycastTargets, false)[0];
     const end = hit ? hit.point : _end.copy(camera.position).addScaledVector(_dir, 60);
     fireTracer(muzzlePoint(), end);
+    if (hit) spawnSpark(hit.point);
     if (hit && hit.object.userData.bot) {
       const bot = hit.object.userData.bot;
       const head = hit.object.userData.part === 'head';
@@ -120,7 +172,35 @@ export function createGame(deps) {
       body.health = 0;
       body.alive = false;
       state.deaths += 1;
-      if (spike.state.status !== 'planted') endRound(false, 'You were eliminated');
+      // Down is not out while the squad stands: the round plays on without you,
+      // and the camera follows a teammate (see syncCamera).
+      if (spike.state.status !== 'planted' && allies.aliveCount() === 0) {
+        endRound(false, 'Ember team eliminated');
+      } else if (spike.state.status !== 'planted') {
+        hud.killfeed('You are down — your squad fights on', false);
+      }
+    }
+  }
+
+  // Whoever plants — the player with E, or the carrying teammate — the team gets
+  // paid and the squad hears it, then digs in around the site.
+  function onPlanted(plantedSite, byAlly) {
+    state.plants += 1;
+    state.money += REWARDS.plant;
+    if (byAlly) hud.killfeed(`${byAlly.name}: Spike planted — holding Site ${plantedSite.name}`, true);
+    else hud.killfeed(`Spike planted at Site ${plantedSite.name}`, true);
+    audio.plant();
+  }
+
+  // A teammate takes a hit (Rust fire or a frag). A death goes on the radio, and
+  // if the fallen teammate was carrying the spike, the carry passes on.
+  function damageAlly(ally, amount) {
+    const died = allies.damage(ally, amount);
+    if (!died) return;
+    hud.killfeed(`${ally.name} is down`, false);
+    if (planter === ally) {
+      planter = null;
+      spike.state.plantProgress = 0;
     }
   }
 
@@ -134,23 +214,40 @@ export function createGame(deps) {
     }
   }
 
+  // Refresh the sight views' flags from the bodies they point at.
+  function refreshViews() {
+    emberViews[0].alive = body.alive;
+    emberViews[0].speed = player.groundSpeed();
+    emberViews[0].crouching = body.crouching;
+    for (let i = 0; i < allies.items.length; i += 1) {
+      const ally = allies.items[i];
+      emberViews[i + 1].alive = ally.alive;
+      emberViews[i + 1].speed = Math.hypot(ally.mover.velocity.x, ally.mover.velocity.z);
+    }
+    for (let i = 0; i < bots.items.length; i += 1) rustViews[i].alive = bots.items[i].alive;
+  }
+
   function botContext() {
     return {
       time: elapsed,
-      playerPos: body.position,
-      playerAlive: body.alive,
-      playerSpeed: player.groundSpeed(),
-      playerCrouching: body.crouching,
       spikePlanted: spike.state.status === 'planted',
       spikeSite: spike.state.site ? spike.state.site.name : '',
       spikePos: spike.state.pos,
       noise,
       smokeBlocks: (a, b) => grenades.smokeBlocks(a, b),
+      targets: emberViews,
+      raycastTargets: rustRaycastTargets,
       playerHitbox,
       onBotShot(bot, from, to, damage, headshot) {
         fireTracer(from, to);
         audio.enemyShot();
         if (damage > 0) damagePlayer(damage, from);
+      },
+      onBotShotAlly(bot, from, to, ally, damage, headshot) {
+        fireTracer(from, to);
+        audio.enemyShot();
+        spawnSpark(to);
+        damageAlly(ally, damage);
       },
       onDefused() {
         spike.defused();
@@ -159,12 +256,49 @@ export function createGame(deps) {
     };
   }
 
+  function allyContext() {
+    return {
+      time: elapsed,
+      enemyViews: rustViews,
+      planSite,
+      spikePlanted: spike.state.status === 'planted',
+      spikeSite: spike.state.site ? spike.state.site.name : '',
+      planter,
+      smokeBlocks: (a, b) => grenades.smokeBlocks(a, b),
+      raycastTargets: emberRaycastTargets,
+      onAllyShot(ally, from, to, hitMesh, damage, headshot) {
+        fireTracer(from, to);
+        audio.enemyShot();
+        _noisePos.copy(ally.mover.position);
+        noise = { pos: _noisePos, time: elapsed };
+        if (hitMesh) {
+          spawnSpark(to);
+          const died = bots.damage(hitMesh, damage);
+          if (died) {
+            const bot = hitMesh.userData.bot;
+            hud.killfeed(`${ally.name} eliminated Rust-${bot.id + 1}${headshot ? ' (headshot)' : ''}`, true);
+            audio.kill();
+          }
+        }
+      },
+      onEvent(kind, ally) {
+        if (kind === 'contact') {
+          const site = world.siteAt(ally.mover.position.x, ally.mover.position.z);
+          const where = site ? `Site ${site.name}` : ally.mover.position.z < -6 ? 'the north yard' : 'the lanes';
+          hud.killfeed(`${ally.name}: Contact — ${where}`, true);
+        }
+      },
+    };
+  }
+
   function grenadeContext() {
     return {
       playerPos: body.position,
       bots: bots.items,
+      allies: allies.items,
       damagePlayer: (dmg) => damagePlayer(dmg, null),
       damageBot: (bot, dmg) => damageBot(bot, dmg),
+      damageAlly: (ally, dmg) => damageAlly(ally, dmg),
       onExplosion(pos, radius) {
         audio.explosion();
         _noisePos.copy(pos);
@@ -198,8 +332,14 @@ export function createGame(deps) {
   function startBuy() {
     state.phase = PHASES.BUY;
     state.phaseTime = 0;
+    // Call the round's plan now, so the squad lines up behind it in the buy phase
+    // and the player hears it the moment the round goes live.
+    planSite = random() < 0.5 ? 'A' : 'B';
+    rotated = false;
+    planter = null;
     player.reset(world.spawns.ember);
     bots.reset();
+    allies.reset(planSite);
     spike.reset();
     grenades.reset();
     weapons.equip(state.loadout);
@@ -223,6 +363,7 @@ export function createGame(deps) {
     state.phaseTime = 0;
     state.roundTimer = ROUND_SECONDS;
     spike.reset();
+    hud.killfeed(`Ember-1: All units — hit Site ${planSite}`, true);
     hud.hideOverlay();
     hud.setTimer(state.roundTimer, false);
     hud.setSpike('carried', '', 0);
@@ -326,6 +467,9 @@ export function createGame(deps) {
 
     if (body.alive) player.step(dt, input.state.keys);
     weapons.step(dt);
+    refreshViews();
+    allies.step(dt, allyContext());
+    if (state.phase !== PHASES.LIVE) return;
     bots.step(dt, botContext());
     if (state.phase !== PHASES.LIVE) return;
     spike.step(dt, {
@@ -335,24 +479,39 @@ export function createGame(deps) {
     if (state.phase !== PHASES.LIVE) return;
     grenades.step(dt, grenadeContext());
 
-    // Planting: hold E inside a site, standing still.
-    if (body.alive && spike.state.status === 'carried' && input.state.keys.has('KeyE')) {
-      const site = world.siteAt(body.position.x, body.position.z);
-      if (site && player.groundSpeed() < 0.8) {
-        spike.plantTick(dt, body.position, (plantedSite) => {
-          state.plants += 1;
-          state.money += REWARDS.plant;
-          hud.killfeed(`Spike planted at Site ${plantedSite.name}`, true);
-          audio.plant();
-        });
-        hud.setPlant(spike.state.plantProgress / PLANT_SECONDS, 'PLANTING SPIKE…');
-      } else {
+    // Planting: the player plants by holding E inside a site, standing still.
+    // If the player is down, the first living teammate carries the spike in and
+    // plants it instead — the squad's plan does not die with the player.
+    if (spike.state.status === 'carried') {
+      let planting = false;
+      if (body.alive && input.state.keys.has('KeyE')) {
+        const site = world.siteAt(body.position.x, body.position.z);
+        if (site && player.groundSpeed() < 0.8) {
+          spike.plantTick(dt, body.position, (plantedSite) => onPlanted(plantedSite, null));
+          hud.setPlant(spike.state.plantProgress / PLANT_SECONDS, 'PLANTING SPIKE…');
+          planting = true;
+        }
+      } else if (!body.alive) {
+        planter = allies.firstAlive();
+        if (planter && planter.state === 'plant') {
+          spike.plantTick(dt, planter.mover.position, (plantedSite) => onPlanted(plantedSite, planter));
+          hud.setPlant(spike.state.plantProgress / PLANT_SECONDS, `${planter.name.toUpperCase()} PLANTING…`);
+          planting = true;
+        }
+      }
+      if (!planting) {
         spike.state.plantProgress = 0;
         hud.setPlant(0, '');
       }
-    } else {
-      spike.state.plantProgress = 0;
-      hud.setPlant(0, '');
+    }
+
+    // A bleeding push rotates once: two teammates down, no plant yet, and the
+    // round clock well spent — the call goes out and the squad falls back.
+    if (!rotated && spike.state.status === 'carried' && body.alive
+      && allies.aliveCount() <= 2 && state.phaseTime > 25) {
+      rotated = true;
+      planSite = planSite === 'A' ? 'B' : 'A';
+      hud.killfeed(`Ember-1: Rotate — fall back to Site ${planSite}`, true);
     }
 
     // Firing, reloading, weapon switching, grenades.
@@ -388,9 +547,13 @@ export function createGame(deps) {
       }
     }
 
-    // Win by elimination.
+    // Win by elimination — or lose the whole team with the spike unplanted.
     if (bots.aliveCount() === 0) {
       endRound(true, 'All Rust bots eliminated');
+      return;
+    }
+    if (!body.alive && allies.aliveCount() === 0 && spike.state.status !== 'planted') {
+      endRound(false, 'Ember team eliminated');
       return;
     }
 
@@ -405,7 +568,7 @@ export function createGame(deps) {
   }
 
   function frame(dt) {
-    // Per-frame visual only: tracer fade. (Weapon view-model steps in step().)
+    // Per-frame visual only: tracer and spark fades. (Weapon view-model steps in step().)
     for (const tracer of tracers) {
       if (!tracer.mesh.visible) continue;
       if (tracer.life > 0) {
@@ -414,9 +577,37 @@ export function createGame(deps) {
         if (tracer.life <= 0) tracer.mesh.visible = false;
       }
     }
+    for (const spark of sparks) {
+      if (!spark.mesh.visible) continue;
+      spark.life -= dt;
+      if (spark.life <= 0) {
+        spark.mesh.visible = false;
+        continue;
+      }
+      const t = spark.life / SPARK_LIFE;
+      spark.mesh.scale.setScalar(0.14 + (1 - t) * 0.5);
+      spark.mesh.material.opacity = t * 0.95;
+    }
   }
 
   function syncCamera(cameraOut) {
+    // Down but not out: ride on a living teammate's shoulder until the round ends.
+    if (!body.alive && state.phase === PHASES.LIVE) {
+      const ally = allies.firstAlive();
+      if (ally) {
+        cameraOut.position.set(ally.mover.position.x, ally.mover.position.y + 1.62, ally.mover.position.z);
+        cameraOut.rotation.set(-0.03, ally.yaw, 0, 'YXZ');
+        return;
+      }
+      if (spike.state.status === 'planted') {
+        // Nobody left to ride: watch the spike from where the player fell.
+        const dx = spike.state.pos.x - body.position.x;
+        const dz = spike.state.pos.z - body.position.z;
+        cameraOut.position.set(body.position.x, body.position.y + 1.1, body.position.z);
+        cameraOut.rotation.set(0, Math.atan2(-dx, -dz), 0, 'YXZ');
+        return;
+      }
+    }
     cameraOut.position.set(body.position.x, body.position.y + body.eye, body.position.z);
     cameraOut.rotation.set(body.pitch, body.yaw, 0, 'YXZ');
   }
@@ -442,14 +633,22 @@ export function createGame(deps) {
       player.reset(world.spawns.ember);
       body.position.set(1.5, 0, 13);
       body.yaw = 0.12;
-      body.pitch = -0.02;
+      body.pitch = 0.04;
       bots.reset();
+      allies.reset('A');
       settle(30);
-      // Walk two bots into the mid lane so the cover shows a fight brewing.
-      bots.items[0].mover.position.set(-3, 0, 2);
-      bots.items[1].mover.position.set(4, 0, -1);
-      bots.items[0].yaw = Math.PI;
-      bots.items[1].yaw = Math.PI;
+      // Stage a fight brewing: two bots walked into the mid lane, two teammates
+      // pushing up the lanes at the frame's edges — a squad, not a solo. The menu
+      // phase never steps the world, so set the group transforms beside the movers.
+      for (const [unit, x, z, yaw] of [
+        [bots.items[0], -3, 2, Math.PI], [bots.items[1], 4, -1, Math.PI],
+        [allies.items[0], -5.4, 6.5, 0.3], [allies.items[1], 6.4, 6, -0.3],
+      ]) {
+        unit.mover.position.set(x, 0, z);
+        unit.yaw = yaw;
+        unit.group.position.set(x, 0, z);
+        unit.group.rotation.y = yaw;
+      }
       hud.showOverlay('start', {});
       return;
     }
@@ -472,9 +671,26 @@ export function createGame(deps) {
       bots.items[0].lastSeenAt = elapsed;
       bots.items[1].mover.position.set(-4, 0, -4);
       bots.items[2].mover.position.set(5, 0, 3);
+      // The squad in frame: Ember-2 trading fire with the same bot from the right,
+      // Ember-3 pushing the left lane. This is a 5v5 fight, and the shot says so.
+      allies.items[0].mover.position.set(2.7, 0, 0.6);
+      allies.items[0].yaw = Math.atan2(-(4.5 - 2.7), -(-5 - 0.6));
+      allies.items[0].state = 'engage';
+      allies.items[0].target = bots.items[0];
+      allies.items[1].mover.position.set(-3.6, 0, -1.2);
+      allies.items[1].yaw = 0.35;
       settle(10);
       aimAt(bots.aimPoint(0));
       shoot(0);
+      // Ember-2's burst lands a beat later: a second tracer and a spark on the bot.
+      const ally = allies.items[0];
+      _muzzle.set(
+        ally.mover.position.x + Math.sin(ally.yaw) * -0.2,
+        1.35,
+        ally.mover.position.z + Math.cos(ally.yaw) * -0.2,
+      );
+      fireTracer(_muzzle, bots.aimPoint(0));
+      spawnSpark(bots.aimPoint(0));
       settle(6);
       hud.hideOverlay();
       return;
@@ -495,6 +711,12 @@ export function createGame(deps) {
       bots.items[0].state = 'route';
       bots.items[1].mover.position.set(-2, 0, -12);
       bots.items[2].mover.position.set(-13, 0, -4);
+      // Covering the plant: one teammate watches the lane in, one holds the site's
+      // east corner.
+      allies.items[0].mover.position.set(-8.4, 0, -7.2);
+      allies.items[0].yaw = -2.5;
+      allies.items[1].mover.position.set(-13.6, 0, -6.2);
+      allies.items[1].yaw = 2.75;
       spike.state.plantProgress = PLANT_SECONDS * 0.6;
       hud.setSpike('carried', '', 0);
       settle(8);
@@ -519,6 +741,9 @@ export function createGame(deps) {
     bots.items[0].fall = 1;
     bots.items[0].group.rotation.x = -1.45;
     bots.items[1].mover.position.set(-5, 0, -6);
+    // A teammate stands over the win at the frame's right edge.
+    allies.items[0].mover.position.set(2.6, 0, -0.8);
+    allies.items[0].yaw = 2.5;
     settle(10);
     // Aim at the fallen bot so the win reads in the frame.
     aimAt(bots.aimPoint(0));

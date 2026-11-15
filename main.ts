@@ -1,9 +1,11 @@
-// Dustworks Yard — a three.js tactical FPS for make.fun (Node 22, standard library
-// only). The game is this directory's game/ folder, plain static files the browser
-// loads as ES modules with three.js 0.187.0 from an import map, and this program
-// hands it in: it copies game/ and screenshots/ from beside this file to /output
-// and writes /output/dossier.json, the summary the judge reads, with the vendored
-// make.fun library.
+// Dustworks Yard — a 5v5 three.js tactical FPS for make.fun (Node 22, standard
+// library only): round-based Counter-Strike-style play in a dusk salvage yard,
+// with a buy economy, a spike to plant and defuse, and team-tactics bots with
+// radio callouts on both sides. The game is this directory's game/ folder, plain
+// static files the browser loads as ES modules with three.js 0.187.0 from an
+// import map, and this program hands it in: it copies game/ and screenshots/
+// from beside this file to /output and writes /output/dossier.json, the summary
+// the judge reads, with the vendored make.fun library.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
@@ -40,4 +42,5 @@ cpSync(shotsDir, join(out, 'screenshots'), { recursive: true });
 // files, in all: game/ counts beside /output's own 1000-entry cap, its screenshots/ and dossier.json).
 const dossier = buildDossier(out, { text_max_bytes: 163840, screenshots: { max: 4, max_bytes: 262144 }, game_max_files: 993, game_max_bytes: 50331648 });
 writeFileSync(join(out, 'dossier.json'), dossier);
-console.log(`dustworks-yard: ${shotNames.length} screenshots, dossier ${dossier.length} bytes -> ${out}`);
+const shotBytes = shotNames.map((name) => `${name} ${statSync(join(shotsDir, name)).size}B`).join(', ');
+console.log(`dustworks-yard v2: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);

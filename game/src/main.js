@@ -10,6 +10,7 @@ import { createInput } from './input.js';
 import { createPlayer } from './player.js';
 import { createWeapons } from './weapons.js';
 import { createBots } from './bots.js';
+import { createAllies } from './allies.js';
 import { createSpike } from './spike.js';
 import { createGrenades } from './grenades.js';
 import { createAudio } from './audio.js';
@@ -27,12 +28,18 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Filmic colour: ACES rolls the dusk highlights off instead of clipping them,
+// and the output is sRGB so the palette the textures were painted in is the
+// palette on screen.
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.getElementById('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(PALETTE.canvas);
-scene.fog = new THREE.Fog(new THREE.Color(PALETTE.canvas), 30, 68);
+scene.background = new THREE.Color(PALETTE.skyTop);
+scene.fog = new THREE.Fog(new THREE.Color(PALETTE.horizon), 36, 100);
 const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.05, 160);
 scene.add(camera);
 
@@ -40,12 +47,13 @@ const world = createWorld(scene);
 const player = createPlayer(world.colliders, world.spawns.ember);
 const weapons = createWeapons(camera);
 const bots = createBots(scene, world, random);
+const allies = createAllies(scene, world, random);
 const spike = createSpike(scene, world);
 const grenades = createGrenades(scene, world);
 const audio = createAudio();
 const hud = createHud();
 const input = createInput(renderer.domElement, onLockChange);
-const game = createGame({ scene, camera, world, player, weapons, bots, spike, grenades, audio, hud, input, random });
+const game = createGame({ scene, camera, world, player, weapons, bots, allies, spike, grenades, audio, hud, input, random });
 
 let frozen = false;
 let accumulator = 0;

@@ -1,9 +1,13 @@
-// The Rust bots: four defenders that walk the waypoint graph to their sites, hold
-// positions, sweep for the player, chase what they see or hear, and converge to defuse
-// a planted spike. They shoot in bursts with a reaction delay, and their accuracy
-// falls off with distance and with how fast the player moves.
+// The Rust bots: five defenders that walk the waypoint graph to their sites, hold
+// positions, sweep for the Ember team, chase what they see or hear, and converge to
+// defuse a planted spike. They fight the whole Ember team, not just the player:
+// every step they pick the nearest visible target — the player or a teammate — and
+// shoot in bursts with a reaction delay, their accuracy falling off with distance
+// and with how fast the target moves.
 import * as THREE from 'three';
 import { createMover } from './mover.js';
+import { buildSoldier } from './soldier.js';
+import { faceYaw, moveToward, pickVisible } from './combat.js';
 import { PALETTE } from './palette.js';
 import { range } from './rng.js';
 
@@ -20,48 +24,21 @@ const DAMAGE = 14;
 const HEAD_DAMAGE = 28;
 
 const _dir = new THREE.Vector3();
-const _toPlayer = new THREE.Vector3();
+const _toTarget = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
 const _aim = new THREE.Vector3();
-const _forward = new THREE.Vector3();
 const _far = new THREE.Vector3();
 
 export function createBots(scene, world, random) {
-  const torsoMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.foe), roughness: 0.65, metalness: 0.1 });
-  const headMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.ink), roughness: 0.5, metalness: 0.1 });
-  const darkMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.hairline), roughness: 0.85 });
-  const torsoGeometry = new THREE.BoxGeometry(0.52, 0.72, 0.3);
-  const headGeometry = new THREE.SphereGeometry(0.16, 14, 10);
-  const legGeometry = new THREE.BoxGeometry(0.18, 0.55, 0.2);
-  const gunGeometry = new THREE.BoxGeometry(0.07, 0.09, 0.55);
-
   const items = [];
   const hitMeshes = [];
   const raycaster = new THREE.Raycaster();
   raycaster.far = 90;
 
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < world.spawns.rust.length; i += 1) {
     const spawn = world.spawns.rust[i];
-    const group = new THREE.Group();
-    const torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
-    torso.position.y = 1.05;
-    torso.userData.part = 'torso';
-    const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.y = 1.58;
-    head.userData.part = 'head';
-    const legL = new THREE.Mesh(legGeometry, darkMaterial);
-    legL.position.set(-0.14, 0.28, 0);
-    const legR = new THREE.Mesh(legGeometry, darkMaterial);
-    legR.position.set(0.14, 0.28, 0);
-    const gun = new THREE.Mesh(gunGeometry, darkMaterial);
-    gun.position.set(0.2, 1.15, -0.3);
-    group.add(torso, head, legL, legR, gun);
-    group.traverse((mesh) => {
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-      }
-    });
+    const built = buildSoldier({ uniform: PALETTE.foe, accent: PALETTE.foe });
+    const { group, torso, head } = built;
     group.position.copy(spawn);
     scene.add(group);
 
@@ -76,12 +53,13 @@ export function createBots(scene, world, random) {
       alive: true,
       yaw: Math.PI,
       state: 'hold',
-      goalSite: i < 2 ? 'A' : 'B',
+      goalSite: i % 2 === 0 ? 'A' : 'B',
       route: [],
       routeIndex: 0,
       holdPoint: new THREE.Vector3(),
       lastSeen: new THREE.Vector3(),
       lastSeenAt: -99,
+      target: null,
       reactionAt: 0,
       burstLeft: 0,
       nextShotAt: 0,
@@ -112,7 +90,7 @@ export function createBots(scene, world, random) {
 
   function assignGoals() {
     for (const bot of items) {
-      bot.goalSite = bot.id < 2 ? 'A' : 'B';
+      bot.goalSite = bot.id % 2 === 0 ? 'A' : 'B';
       const site = world.sites.find((s) => s.name === bot.goalSite);
       bot.holdPoint.set(
         site.center.x + range(random, -2.5, 2.5),
@@ -123,51 +101,18 @@ export function createBots(scene, world, random) {
     }
   }
 
+  // Returns the bot only when this hit killed it; a wound that leaves it standing
+  // returns null, so kill credit, killfeed and kill money fire once per death.
   function damage(mesh, amount) {
     const bot = mesh.userData.bot;
     if (!bot || !bot.alive) return null;
     bot.health -= amount;
-    if (bot.health > 0) return bot;
+    if (bot.health > 0) return null;
     bot.alive = false;
     bot.state = 'dead';
     bot.fall = 0;
     bot.defuseProgress = 0;
     return bot;
-  }
-
-  function canSee(bot, ctx) {
-    if (!ctx.playerAlive) return false;
-    _toPlayer.copy(ctx.playerPos).sub(bot.mover.position);
-    _toPlayer.y = 0;
-    const dist = _toPlayer.length();
-    if (dist > SEE_DISTANCE) return false;
-    if (dist > 6) {
-      _forward.set(-Math.sin(bot.yaw), 0, -Math.cos(bot.yaw));
-      if (_forward.dot(_toPlayer) / dist < 0.25) return false;
-    }
-    const eye = new THREE.Vector3(bot.mover.position.x, 1.55, bot.mover.position.z);
-    const chest = new THREE.Vector3(ctx.playerPos.x, ctx.playerPos.y + 1.25, ctx.playerPos.z);
-    if (world.blockedBetween(eye, chest)) return false;
-    if (ctx.smokeBlocks && ctx.smokeBlocks(eye, chest)) return false;
-    return true;
-  }
-
-  function faceYaw(bot, targetYaw, dt, rate = 6) {
-    let diff = targetYaw - bot.yaw;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    bot.yaw += Math.max(-rate * dt, Math.min(rate * dt, diff));
-  }
-
-  function moveToward(bot, target, dt, speed = BOT_SPEED) {
-    _dir.set(target.x - bot.mover.position.x, 0, target.z - bot.mover.position.z);
-    const dist = _dir.length();
-    if (dist < 0.15) return true;
-    _dir.multiplyScalar(1 / dist);
-    bot.mover.step(dt, _dir.x, _dir.z, speed, BOT_ACCEL, BOT_FRICTION);
-    faceYaw(bot, Math.atan2(-_dir.x, -_dir.z), dt, 8);
-    bot.walkPhase += dt * 9;
-    return false;
   }
 
   function step(dt, ctx) {
@@ -181,9 +126,11 @@ export function createBots(scene, world, random) {
       bot.group.rotation.x = 0;
       bot.group.position.y = 0;
 
-      const sees = canSee(bot, ctx);
-      if (sees) {
-        bot.lastSeen.copy(ctx.playerPos);
+      // ctx.targets holds the player and every teammate as sight views.
+      const seen = pickVisible(world, ctx.smokeBlocks, bot.mover.position, bot.yaw, ctx.targets, SEE_DISTANCE);
+      if (seen) {
+        bot.target = seen;
+        bot.lastSeen.copy(seen.pos);
         bot.lastSeenAt = ctx.time;
         if (bot.state !== 'engage') {
           bot.state = 'engage';
@@ -203,9 +150,17 @@ export function createBots(scene, world, random) {
       }
 
       if (bot.state === 'engage') {
-        _toPlayer.copy(ctx.playerPos).sub(bot.mover.position);
-        const dist = Math.hypot(_toPlayer.x, _toPlayer.z);
-        const targetYaw = Math.atan2(-_toPlayer.x, -_toPlayer.z);
+        const target = bot.target;
+        if (!target || !target.alive) {
+          bot.state = 'investigate';
+          bot.investigateAt = bot.lastSeen.clone();
+          bot.investigateUntil = ctx.time + 3;
+          setRoute(bot, world.nearestWaypoint(bot.lastSeen.x, bot.lastSeen.z));
+          continue;
+        }
+        _toTarget.copy(target.pos).sub(bot.mover.position);
+        const dist = Math.hypot(_toTarget.x, _toTarget.z);
+        const targetYaw = Math.atan2(-_toTarget.x, -_toTarget.z);
         faceYaw(bot, targetYaw, dt, 8);
         // Strafe to stay at fighting distance and stay hard to hit.
         if (ctx.time > bot.strafeUntil) {
@@ -221,7 +176,7 @@ export function createBots(scene, world, random) {
         bot.mover.step(dt, wishX / wishLen, wishZ / wishLen, BOT_SPEED * 0.7, BOT_ACCEL, BOT_FRICTION);
         bot.walkPhase += dt * 9;
 
-        if (ctx.time >= bot.reactionAt && ctx.time >= bot.pauseUntil && ctx.playerAlive) {
+        if (ctx.time >= bot.reactionAt && ctx.time >= bot.pauseUntil) {
           if (bot.burstLeft <= 0) {
             bot.burstLeft = BURST_MIN + Math.floor(random() * (BURST_MAX - BURST_MIN + 1));
             bot.nextShotAt = ctx.time;
@@ -233,7 +188,7 @@ export function createBots(scene, world, random) {
             if (bot.burstLeft <= 0) bot.pauseUntil = ctx.time + range(random, 0.6, 1.2);
           }
         }
-        if (!sees && ctx.time - bot.lastSeenAt > 2.5) {
+        if (!seen && ctx.time - bot.lastSeenAt > 2.5) {
           bot.state = 'investigate';
           bot.investigateAt = bot.lastSeen.clone();
           bot.investigateUntil = ctx.time + 3;
@@ -244,7 +199,7 @@ export function createBots(scene, world, random) {
 
       if (bot.state === 'defuse') {
         const spikePos = ctx.spikePos;
-        const arrived = moveToward(bot, spikePos, dt, BOT_SPEED);
+        const arrived = moveToward(bot, spikePos, dt, BOT_SPEED, BOT_ACCEL, BOT_FRICTION);
         if (arrived) {
           bot.defuseProgress += dt;
           faceYaw(bot, Math.atan2(-(spikePos.x - bot.mover.position.x), -(spikePos.z - bot.mover.position.z)), dt, 8);
@@ -260,7 +215,7 @@ export function createBots(scene, world, random) {
           continue;
         }
         const wp = world.waypoints[target];
-        const arrived = moveToward(bot, wp.pos, dt);
+        const arrived = moveToward(bot, wp.pos, dt, BOT_SPEED, BOT_ACCEL, BOT_FRICTION);
         if (arrived) {
           bot.routeIndex += 1;
           if (bot.routeIndex >= bot.route.length) {
@@ -277,7 +232,7 @@ export function createBots(scene, world, random) {
 
       if (bot.state === 'investigate') {
         if (bot.investigateAt) {
-          const arrived = moveToward(bot, bot.investigateAt, dt);
+          const arrived = moveToward(bot, bot.investigateAt, dt, BOT_SPEED, BOT_ACCEL, BOT_FRICTION);
           if (arrived || ctx.time > bot.investigateUntil) {
             bot.state = 'hold';
             bot.investigateAt = null;
@@ -316,35 +271,40 @@ export function createBots(scene, world, random) {
   }
 
   function fireAt(bot, ctx) {
+    const target = bot.target;
+    if (!target) return;
     _muzzle.set(
       bot.mover.position.x + Math.sin(bot.yaw) * -0.2,
       1.35,
       bot.mover.position.z + Math.cos(bot.yaw) * -0.2,
     );
-    _aim.copy(ctx.playerPos);
-    _aim.y = ctx.playerPos.y + 1.25;
+    _aim.copy(target.pos);
+    _aim.y = target.pos.y + 1.25;
     const dist = _muzzle.distanceTo(_aim);
-    const spread = 0.02 + dist * 0.0011 + ctx.playerSpeed * 0.004 - (ctx.playerCrouching ? 0.008 : 0);
+    const spread = 0.02 + dist * 0.0011 + target.speed * 0.004 - (target.crouching ? 0.008 : 0);
     _dir.subVectors(_aim, _muzzle).normalize();
     _dir.x += (random() * 2 - 1) * spread;
     _dir.y += (random() * 2 - 1) * spread;
     _dir.z += (random() * 2 - 1) * spread;
     _dir.normalize();
     raycaster.set(_muzzle, _dir);
-    const targets = [ctx.playerHitbox, ...world.shootables];
-    const hit = raycaster.intersectObjects(targets, false)[0];
-    let damageDone = 0;
-    let headshot = false;
+    const hit = raycaster.intersectObjects(ctx.raycastTargets, false)[0];
     let end = _far.copy(_muzzle).addScaledVector(_dir, 60);
-    if (hit) {
-      end = hit.point;
-      if (hit.object === ctx.playerHitbox) {
-        headshot = hit.point.y > ctx.playerPos.y + 1.45;
-        damageDone = headshot ? HEAD_DAMAGE : DAMAGE;
-      }
+    if (!hit) {
+      ctx.onBotShot(bot, _muzzle, end, 0, false);
+      return;
     }
-    // game.js copies both vectors into its tracer pool at once; nothing here allocates.
-    ctx.onBotShot(bot, _muzzle, end, damageDone, headshot);
+    end = hit.point;
+    if (hit.object === ctx.playerHitbox) {
+      const headshot = hit.point.y > target.pos.y + 1.45;
+      ctx.onBotShot(bot, _muzzle, end, headshot ? HEAD_DAMAGE : DAMAGE, headshot);
+    } else if (hit.object.userData.ally) {
+      const headshot = hit.object.userData.part === 'head';
+      ctx.onBotShotAlly(bot, _muzzle, end, hit.object.userData.ally, headshot ? HEAD_DAMAGE : DAMAGE, headshot);
+    } else {
+      // A wall, a crate — or a fellow Rust bot in the line: the shot stops there.
+      ctx.onBotShot(bot, _muzzle, end, 0, false);
+    }
   }
 
   function reset() {
@@ -360,6 +320,7 @@ export function createBots(scene, world, random) {
       bot.alive = true;
       bot.yaw = Math.PI;
       bot.fall = 0;
+      bot.target = null;
       bot.defuseProgress = 0;
       bot.lastSeenAt = -99;
       bot.burstLeft = 0;

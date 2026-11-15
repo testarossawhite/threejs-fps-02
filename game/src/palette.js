@@ -1,15 +1,19 @@
-// The look plan, in one place: a salvage yard at dusk. Warm dark ground, amber accent
-// for the player's side and the A site, rust red for the enemy bots and the B site.
-// The same names are the CSS custom properties in index.html.
+// The look plan, in one place: a salvage yard at dusk, lit warm and readable — not
+// a brown cave. Amber is Ember and Site A (Foundry); teal is Site B (Depot), so the
+// two ends of the yard read apart at a glance; rust red belongs to the Rust bots
+// alone. The same names are the CSS custom properties in index.html.
 export const PALETTE = {
-  canvas: '#211a13',
-  surface: '#322920',
-  hairline: '#4d4030',
-  ink: '#f0e7d6',
-  muted: '#a89a83',
-  accent: '#e8a33d',
-  foe: '#c8503c',
-  steel: '#5d6b73',
+  canvas: '#3a2b1c',
+  surface: '#5a4630',
+  hairline: '#77603f',
+  ink: '#f4ead2',
+  muted: '#b3a189',
+  accent: '#f0a63e',
+  siteB: '#3fbfae',
+  foe: '#d2543f',
+  steel: '#71828c',
+  horizon: '#8a5a30',
+  skyTop: '#232c47',
 };
 
 export function shade(name) {

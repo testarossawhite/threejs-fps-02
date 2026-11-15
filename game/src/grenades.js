@@ -76,6 +76,10 @@ export function createGrenades(scene, world) {
     for (const bot of ctx.bots) {
       if (bot.alive) targets.push({ pos: bot.mover.position, hit: (dmg) => ctx.damageBot(bot, dmg) });
     }
+    // A frag does not check jerseys: teammates in the open take it too.
+    for (const ally of ctx.allies ?? []) {
+      if (ally.alive) targets.push({ pos: ally.mover.position, hit: (dmg) => ctx.damageAlly(ally, dmg) });
+    }
     for (const target of targets) {
       _toTarget.copy(target.pos).sub(item.pos);
       _toTarget.y = 0;

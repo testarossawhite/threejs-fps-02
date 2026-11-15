@@ -21,35 +21,73 @@ export const WEAPONS = {
 
 const MUZZLE_TIME = 0.06;
 
+// Each view model is a small composition with its own silhouette: the P-9 is all
+// slide and grip, the Dusk-9 a ribbed shroud over a curved magazine, the VK-7 a
+// long handguard under a proper scope. Shared gunmetal/polymer/trim materials;
+// the muzzle z is returned so the flash can sit on the barrel's end, not near it.
 function buildViewModel(def, accent) {
-  const grip = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.hairline), roughness: 0.7, metalness: 0.2 });
-  const body = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.ink), roughness: 0.5, metalness: 0.35 });
+  const polymer = new THREE.MeshStandardMaterial({ color: new THREE.Color('#26221e'), roughness: 0.75, metalness: 0.15 });
+  const body = new THREE.MeshStandardMaterial({ color: new THREE.Color('#5b636e'), roughness: 0.42, metalness: 0.55 });
+  const steel = new THREE.MeshStandardMaterial({ color: new THREE.Color('#6a7076'), roughness: 0.35, metalness: 0.7 });
   const trim = new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.45, metalness: 0.2 });
+  const lens = new THREE.MeshStandardMaterial({
+    color: new THREE.Color('#0e2a30'), roughness: 0.15, metalness: 0.4,
+    emissive: new THREE.Color('#2b6f77'), emissiveIntensity: 0.7,
+  });
   const model = new THREE.Group();
-  const isPistol = def.short === 'P-9';
-  const isSmg = def.short === 'Dusk-9';
-  const receiver = new THREE.Mesh(new THREE.BoxGeometry(isPistol ? 0.06 : 0.09, isPistol ? 0.09 : 0.1, isPistol ? 0.24 : 0.42), body);
-  model.add(receiver);
-  const barrel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.04, 0.04, isPistol ? 0.16 : isSmg ? 0.3 : 0.4), grip,
-  );
-  barrel.position.set(0, 0.02, isPistol ? -0.18 : -0.34);
-  model.add(barrel);
-  if (!isPistol) {
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.08, 0.22), grip);
-    stock.position.set(0, -0.02, 0.3);
-    model.add(stock);
-    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.1), trim);
-    sight.position.set(0, 0.075, -0.05);
-    model.add(sight);
-  }
-  if (isSmg) {
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.07), trim);
-    mag.position.set(0, -0.12, -0.02);
-    model.add(mag);
+  const part = (w, h, d, material, x, y, z, rotX = 0) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = rotX;
+    model.add(mesh);
+    return mesh;
+  };
+  const tube = (r, len, material, x, y, z) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), material);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.position.set(x, y, z);
+    model.add(mesh);
+    return mesh;
+  };
+
+  let muzzleZ = -0.21;
+  if (def.short === 'P-9') {
+    part(0.055, 0.07, 0.22, polymer, 0, -0.01, -0.02); // frame
+    part(0.06, 0.05, 0.26, body, 0, 0.055, -0.04); // slide
+    part(0.062, 0.012, 0.18, trim, 0, 0.03, -0.04); // slide stripe
+    tube(0.016, 0.05, steel, 0, 0.05, -0.19); // barrel tip
+    part(0.05, 0.16, 0.07, polymer, 0, -0.11, 0.05, 0.28); // grip
+    part(0.012, 0.03, 0.012, steel, 0, 0.095, -0.16); // front post
+    part(0.04, 0.025, 0.015, steel, 0, 0.09, 0.06); // rear sight
+  } else if (def.short === 'Dusk-9') {
+    part(0.08, 0.1, 0.4, body, 0, 0, -0.05); // receiver
+    part(0.07, 0.08, 0.24, polymer, 0, 0.01, -0.36); // shroud
+    for (const z of [-0.28, -0.37, -0.46]) part(0.086, 0.096, 0.03, body, 0, 0.01, z); // shroud ribs
+    tube(0.018, 0.12, steel, 0, 0.02, -0.55); // barrel
+    part(0.05, 0.14, 0.07, trim, 0, -0.11, -0.02); // magazine, upper
+    part(0.05, 0.13, 0.07, trim, 0, -0.21, 0.015, 0.35); // magazine, curved toe
+    part(0.045, 0.11, 0.05, polymer, 0, -0.1, -0.3, -0.2); // foregrip
+    part(0.07, 0.08, 0.2, polymer, 0, -0.01, 0.24); // stock
+    part(0.03, 0.05, 0.16, trim, 0, 0.08, -0.08); // carry sight
+    muzzleZ = -0.61;
+  } else {
+    part(0.085, 0.1, 0.44, body, 0, 0, -0.04); // receiver
+    part(0.075, 0.085, 0.3, polymer, 0, 0, -0.36); // handguard
+    part(0.03, 0.02, 0.62, steel, 0, 0.065, -0.18); // top rail
+    tube(0.02, 0.22, steel, 0, 0.01, -0.6); // barrel
+    tube(0.032, 0.07, body, 0, 0.01, -0.72); // muzzle brake
+    part(0.02, 0.04, 0.02, body, 0, 0.085, -0.02); // scope mounts
+    part(0.02, 0.04, 0.02, body, 0, 0.085, -0.16);
+    tube(0.026, 0.2, body, 0, 0.115, -0.09); // scope tube
+    tube(0.024, 0.006, lens, 0, 0.115, -0.192); // scope lens
+    part(0.05, 0.15, 0.08, polymer, 0, -0.12, 0, 0.3); // magazine
+    part(0.05, 0.13, 0.06, polymer, 0, -0.1, 0.12, 0.3); // grip
+    part(0.07, 0.09, 0.22, polymer, 0, -0.015, 0.26); // stock
+    part(0.06, 0.04, 0.14, polymer, 0, 0.05, 0.26); // cheek rest
+    muzzleZ = -0.76;
   }
   model.position.set(0.24, -0.2, -0.42);
-  return model;
+  return { model, muzzleZ: muzzleZ - 0.42 };
 }
 
 export function createWeapons(camera) {
@@ -65,11 +103,13 @@ export function createWeapons(camera) {
   flashLight.position.set(0.24, -0.16, -0.6);
   camera.add(flashLight);
 
+  const muzzles = {};
   for (const key of Object.keys(WEAPONS)) {
-    const model = buildViewModel(WEAPONS[key], key === 'rifle' ? PALETTE.accent : PALETTE.steel);
-    model.visible = false;
-    camera.add(model);
-    models[key] = model;
+    const built = buildViewModel(WEAPONS[key], key === 'rifle' ? PALETTE.accent : PALETTE.steel);
+    built.model.visible = false;
+    camera.add(built.model);
+    models[key] = built.model;
+    muzzles[key] = built.muzzleZ;
   }
 
   const state = {
@@ -98,6 +138,10 @@ export function createWeapons(camera) {
     state.cooldown = 0;
     state.reloadLeft = 0;
     for (const key of Object.keys(models)) models[key].visible = key === name;
+    // The flash and its light sit on this gun's muzzle, not at a fixed depth.
+    flash.position.set(0.24, -0.17, muzzles[name] - 0.02);
+    flash.scale.setScalar(name === 'rifle' ? 1.3 : name === 'smg' ? 1.05 : 0.8);
+    flashLight.position.set(0.24, -0.16, muzzles[name] + 0.3);
   }
 
   function step(dt) {

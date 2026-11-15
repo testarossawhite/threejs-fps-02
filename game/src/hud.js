@@ -161,7 +161,7 @@ export function createHud() {
         buyMoney.hidden = true;
         if (mode === 'start') {
           title.textContent = 'Dustworks Yard';
-          copy.textContent = 'Ember attacks, Rust defends. Plant the spike at Site A (Foundry) or Site B (Depot) — or eliminate all four Rust bots. First to 4 rounds takes the yard.';
+          copy.textContent = 'Your Ember squad attacks — five against five. Follow the radio call, plant the spike at Site A (Foundry) or Site B (Depot), or eliminate all five Rust bots. First to 4 rounds takes the yard.';
           play.textContent = 'Click to play';
         } else if (mode === 'paused') {
           title.textContent = 'Dustworks Yard';
@@ -169,7 +169,7 @@ export function createHud() {
           play.textContent = 'Click to resume';
         } else if (mode === 'roundEnd') {
           title.textContent = data.won ? 'Round won' : 'Round lost';
-          copy.textContent = `${data.reason}  Ember ${data.wonRounds} — ${data.lost} Rust. ${data.earned ? `You earned $${data.earned}.` : ''}`;
+          copy.textContent = `${data.reason}.  Ember ${data.wonRounds} — ${data.lost} Rust. ${data.earned ? `You earned $${data.earned}.` : ''}`;
           play.textContent = 'Continue to buy phase';
         } else if (mode === 'matchEnd') {
           title.textContent = data.won ? 'The yard is yours' : 'Rust keeps the yard';

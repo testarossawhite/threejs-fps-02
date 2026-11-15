@@ -48,7 +48,6 @@ export function createState() {
     roundTimer: ROUND_SECONDS,
     roundReason: '',
     matchWinner: '',
-    // Loadout the player carries into the next round.
     loadout: { primary: 'pistol', frags: 0, smokes: 0, armour: false },
     spike: 'carried',
     spikeSite: '',

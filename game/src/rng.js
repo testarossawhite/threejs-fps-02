@@ -1,5 +1,5 @@
-// Seeded randomness: one small generator, so a shot with &seed=N plays the same way
-// every time and the game stays deterministic in capture mode.
+// Seeded randomness: one small generator, so a shot with &seed=N plays the same
+// way every time and capture mode stays deterministic.
 export function mulberry32(initial) {
   let a = initial | 0;
   return function random() {

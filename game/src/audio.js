@@ -1,6 +1,5 @@
-// Sound, synthesized at runtime with WebAudio — no audio files, no network. Every
-// call is guarded: before the first click the context is suspended, and in a headless
-// capture there is no context at all, so nothing here can throw.
+// Sound, synthesized with WebAudio — no audio files. Every call is guarded: before
+// the first click the context is suspended, so nothing here can throw.
 export function createAudio() {
   let ctx = null;
   let noiseBuffer = null;

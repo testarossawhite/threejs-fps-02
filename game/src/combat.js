@@ -1,8 +1,13 @@
-// Combat helpers both teams' fighters share: turning toward a heading, walking a
-// mover toward a point, and picking the nearest target with a clear line of sight.
-// One copy of each, so the Rust brain in bots.js and the Ember brain in allies.js
-// differ only in what they want, never in how eyes and legs work.
+// Combat helpers both brains share: turning toward a heading, walking a mover
+// toward a point, picking the nearest target with a clear line of sight, and the
+// engage behaviour itself — face the target, strafe at fighting distance, fire in
+// bursts with a reaction delay. The brains differ only in what they want.
 import * as THREE from 'three';
+import { range } from './rng.js';
+
+const BURST_MIN = 3;
+const BURST_MAX = 5;
+const SHOT_GAP = 0.11;
 
 const _toTarget = new THREE.Vector3();
 const _forward = new THREE.Vector3();
@@ -30,9 +35,42 @@ export function moveToward(body, target, dt, speed, accel, friction) {
   return false;
 }
 
-// The nearest living target with an unobstructed eye-to-chest line, or null.
-// Targets are views: { pos (feet), alive }. Walls and smoke both break the line,
-// and outside six metres the seeker's facing matters (a 0.25 dot-product cone).
+// Fight a visible target: face it, strafe to hold fighting distance, and loose
+// bursts once the reaction delay has run, pausing between bursts. fire(unit)
+// fires one shot with the brain's own ray and damage rules.
+export function engageMove(unit, targetPos, dt, time, random, speed, accel, friction, fire) {
+  _toTarget.copy(targetPos).sub(unit.mover.position);
+  const dist = Math.hypot(_toTarget.x, _toTarget.z);
+  faceYaw(unit, Math.atan2(-_toTarget.x, -_toTarget.z), dt, 8);
+  // Strafe to stay at fighting distance and stay hard to hit.
+  if (time > unit.strafeUntil) {
+    unit.strafeDir = random() < 0.5 ? -1 : 1;
+    unit.strafeUntil = time + range(random, 0.7, 1.6);
+  }
+  const strafeX = Math.cos(unit.yaw) * unit.strafeDir;
+  const strafeZ = -Math.sin(unit.yaw) * unit.strafeDir;
+  const approach = dist > 16 ? 0.7 : dist < 7 ? -0.5 : 0;
+  const wishX = strafeX * 0.8 + (-Math.sin(unit.yaw)) * approach;
+  const wishZ = strafeZ * 0.8 + (-Math.cos(unit.yaw)) * approach;
+  const wishLen = Math.hypot(wishX, wishZ) || 1;
+  unit.mover.step(dt, wishX / wishLen, wishZ / wishLen, speed * 0.7, accel, friction);
+  unit.walkPhase += dt * 9;
+  if (time >= unit.reactionAt && time >= unit.pauseUntil) {
+    if (unit.burstLeft <= 0) {
+      unit.burstLeft = BURST_MIN + Math.floor(random() * (BURST_MAX - BURST_MIN + 1));
+      unit.nextShotAt = time;
+    }
+    if (time >= unit.nextShotAt) {
+      unit.nextShotAt = time + SHOT_GAP;
+      unit.burstLeft -= 1;
+      fire(unit);
+      if (unit.burstLeft <= 0) unit.pauseUntil = time + range(random, 0.6, 1.2);
+    }
+  }
+}
+
+// The nearest living target with an unobstructed eye-to-chest line, or null. Walls
+// and smoke break the line; outside six metres the facing matters (0.25 dot cone).
 export function pickVisible(world, smokeBlocks, fromPos, yaw, targets, maxDist) {
   let best = null;
   let bestDist = Infinity;

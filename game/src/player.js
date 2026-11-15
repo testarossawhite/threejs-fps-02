@@ -1,5 +1,5 @@
-// The player: acceleration, friction, gravity, crouch and jump on top of the shared
-// mover, plus look and recoil. One body, one eye height, one ground speed.
+// The player: acceleration, friction, gravity, crouch and jump on the shared mover,
+// plus look and recoil. One body, one eye height, one ground speed.
 import * as THREE from 'three';
 import { createMover } from './mover.js';
 

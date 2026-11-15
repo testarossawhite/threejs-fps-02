@@ -71,12 +71,12 @@ export function createGrenades(scene, world) {
     item.flash.scale.setScalar(0.5);
     item.left = 0.18;
     ctx.onExplosion(item.pos.clone(), FRAG_RADIUS);
-    // Damage falls off with distance and needs line of sight.
+    // Damage falls off with distance; needs line of sight.
     const targets = [{ pos: ctx.playerPos, hit: (dmg) => ctx.damagePlayer(dmg, item.pos) }];
     for (const bot of ctx.bots) {
       if (bot.alive) targets.push({ pos: bot.mover.position, hit: (dmg) => ctx.damageBot(bot, dmg) });
     }
-    // A frag does not check jerseys: teammates in the open take it too.
+    // A frag does not check jerseys: teammates take it too.
     for (const ally of ctx.allies ?? []) {
       if (ally.alive) targets.push({ pos: ally.mover.position, hit: (dmg) => ctx.damageAlly(ally, dmg) });
     }

@@ -1,13 +1,10 @@
-// The Rust bots: five defenders that walk the waypoint graph to their sites, hold
-// positions, sweep for the Ember team, chase what they see or hear, and converge to
-// defuse a planted spike. They fight the whole Ember team, not just the player:
-// every step they pick the nearest visible target — the player or a teammate — and
-// shoot in bursts with a reaction delay, their accuracy falling off with distance
-// and with how fast the target moves.
+// The Rust bots: five defenders that walk the waypoint graph to their sites, hold,
+// sweep, chase what they see or hear, and converge to defuse a planted spike. They
+// fight the whole Ember team, not just the player.
 import * as THREE from 'three';
 import { createMover } from './mover.js';
-import { buildSoldier } from './soldier.js';
-import { faceYaw, moveToward, pickVisible } from './combat.js';
+import { buildSoldier, animateSoldier } from './soldier.js';
+import { engageMove, faceYaw, moveToward, pickVisible } from './combat.js';
 import { PALETTE } from './palette.js';
 import { range } from './rng.js';
 
@@ -17,14 +14,10 @@ const BOT_ACCEL = 30;
 const BOT_FRICTION = 8;
 const SEE_DISTANCE = 34;
 const HEAR_DISTANCE = 30;
-const BURST_MIN = 3;
-const BURST_MAX = 5;
-const SHOT_GAP = 0.11;
 const DAMAGE = 14;
 const HEAD_DAMAGE = 28;
 
 const _dir = new THREE.Vector3();
-const _toTarget = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
 const _aim = new THREE.Vector3();
 const _far = new THREE.Vector3();
@@ -48,6 +41,7 @@ export function createBots(scene, world, random) {
       group,
       torso,
       head,
+      soldier: built,
       mover,
       health: HEALTH,
       alive: true,
@@ -69,6 +63,8 @@ export function createBots(scene, world, random) {
       defuseProgress: 0,
       scanPhase: random() * Math.PI * 2,
       fall: 0,
+      flinch: 0,
+      deadTime: 0,
       walkPhase: random() * 6,
     };
     torso.userData.bot = bot;
@@ -101,11 +97,11 @@ export function createBots(scene, world, random) {
     }
   }
 
-  // Returns the bot only when this hit killed it; a wound that leaves it standing
-  // returns null, so kill credit, killfeed and kill money fire once per death.
+  // Returns the bot only when this hit killed it, so kill credit fires once per death.
   function damage(mesh, amount) {
     const bot = mesh.userData.bot;
     if (!bot || !bot.alive) return null;
+    bot.flinch = 1;
     bot.health -= amount;
     if (bot.health > 0) return null;
     bot.alive = false;
@@ -119,12 +115,10 @@ export function createBots(scene, world, random) {
     for (const bot of items) {
       if (!bot.alive) {
         bot.fall = Math.min(1, bot.fall + dt / 0.4);
-        bot.group.rotation.x = -bot.fall * 1.45;
-        bot.group.position.y = -bot.fall * 0.08;
+        bot.deadTime += dt;
         continue;
       }
-      bot.group.rotation.x = 0;
-      bot.group.position.y = 0;
+      bot.flinch = Math.max(0, bot.flinch - dt * 4);
 
       // ctx.targets holds the player and every teammate as sight views.
       const seen = pickVisible(world, ctx.smokeBlocks, bot.mover.position, bot.yaw, ctx.targets, SEE_DISTANCE);
@@ -158,36 +152,7 @@ export function createBots(scene, world, random) {
           setRoute(bot, world.nearestWaypoint(bot.lastSeen.x, bot.lastSeen.z));
           continue;
         }
-        _toTarget.copy(target.pos).sub(bot.mover.position);
-        const dist = Math.hypot(_toTarget.x, _toTarget.z);
-        const targetYaw = Math.atan2(-_toTarget.x, -_toTarget.z);
-        faceYaw(bot, targetYaw, dt, 8);
-        // Strafe to stay at fighting distance and stay hard to hit.
-        if (ctx.time > bot.strafeUntil) {
-          bot.strafeDir = random() < 0.5 ? -1 : 1;
-          bot.strafeUntil = ctx.time + range(random, 0.7, 1.6);
-        }
-        const strafeX = Math.cos(bot.yaw) * bot.strafeDir;
-        const strafeZ = -Math.sin(bot.yaw) * bot.strafeDir;
-        const approach = dist > 16 ? 0.7 : dist < 7 ? -0.5 : 0;
-        const wishX = strafeX * 0.8 + (-Math.sin(bot.yaw)) * approach;
-        const wishZ = strafeZ * 0.8 + (-Math.cos(bot.yaw)) * approach;
-        const wishLen = Math.hypot(wishX, wishZ) || 1;
-        bot.mover.step(dt, wishX / wishLen, wishZ / wishLen, BOT_SPEED * 0.7, BOT_ACCEL, BOT_FRICTION);
-        bot.walkPhase += dt * 9;
-
-        if (ctx.time >= bot.reactionAt && ctx.time >= bot.pauseUntil) {
-          if (bot.burstLeft <= 0) {
-            bot.burstLeft = BURST_MIN + Math.floor(random() * (BURST_MAX - BURST_MIN + 1));
-            bot.nextShotAt = ctx.time;
-          }
-          if (ctx.time >= bot.nextShotAt) {
-            bot.nextShotAt = ctx.time + SHOT_GAP;
-            bot.burstLeft -= 1;
-            fireAt(bot, ctx);
-            if (bot.burstLeft <= 0) bot.pauseUntil = ctx.time + range(random, 0.6, 1.2);
-          }
-        }
+        engageMove(bot, target.pos, dt, ctx.time, random, BOT_SPEED, BOT_ACCEL, BOT_FRICTION, () => fireAt(bot, ctx));
         if (!seen && ctx.time - bot.lastSeenAt > 2.5) {
           bot.state = 'investigate';
           bot.investigateAt = bot.lastSeen.clone();
@@ -257,16 +222,19 @@ export function createBots(scene, world, random) {
       }
     }
 
-    // Apply positions and walk bob to the meshes.
+    // Apply positions, then pose the body: walk cycle, aim, flinch, fall, fade.
     for (const bot of items) {
       bot.group.position.x = bot.mover.position.x;
       bot.group.position.z = bot.mover.position.z;
       bot.group.rotation.y = bot.yaw;
-      if (bot.alive && (bot.state === 'route' || bot.state === 'engage' || bot.state === 'investigate' || bot.state === 'defuse')) {
-        const bob = Math.sin(bot.walkPhase) * 0.04;
-        bot.group.children[2].position.y = 0.28 + Math.max(0, bob);
-        bot.group.children[3].position.y = 0.28 + Math.max(0, -bob);
-      }
+      animateSoldier(bot.soldier, {
+        dt,
+        phase: bot.walkPhase,
+        moving: bot.alive && bot.state !== 'hold',
+        flinch: bot.flinch,
+        fall: bot.fall,
+        fade: Math.max(0, Math.min(1, (bot.deadTime - 1) / 1.5)),
+      });
     }
   }
 
@@ -320,6 +288,9 @@ export function createBots(scene, world, random) {
       bot.alive = true;
       bot.yaw = Math.PI;
       bot.fall = 0;
+      bot.flinch = 0;
+      bot.deadTime = 0;
+      bot.soldier.resetVisual();
       bot.target = null;
       bot.defuseProgress = 0;
       bot.lastSeenAt = -99;

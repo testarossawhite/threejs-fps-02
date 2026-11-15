@@ -1,6 +1,6 @@
-// The DOM HUD: crosshair, hit marker, health, ammo, money, round timer, score, spike
-// status, kill feed and the overlay panels (start, buy, round end, match end). It never
-// touches the simulation; game.js pushes numbers in and reads button callbacks out.
+// The DOM HUD: crosshair, hit marker, health, ammo, money, timer, score, spike
+// status, kill feed and the overlay panels. It never touches the simulation;
+// game.js pushes numbers in and reads button callbacks out.
 import { PRICES } from './state.js';
 
 const BUY_ITEMS = [

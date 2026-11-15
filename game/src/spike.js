@@ -1,6 +1,5 @@
-// The spike: the objective beyond killing. The player carries it, plants it at a site
-// (hold E, 3 seconds, standing still), and it ticks for 35 seconds while the Rust bots
-// converge to defuse it (5 seconds). Plant, explosion and defuse each end the round.
+// The spike: carried by the player, planted at a site (hold E, 3 s, standing still),
+// ticks 35 s while the Rust bots converge to defuse (5 s). Each outcome ends the round.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { PLANT_SECONDS, DEFUSE_SECONDS, SPIKE_SECONDS } from './state.js';
@@ -46,7 +45,6 @@ export function createSpike(scene, world) {
     group.visible = false;
   }
 
-  // Called every step while the player holds E inside a site.
   function plantTick(dt, playerPos, onPlanted) {
     if (spike.status !== 'carried') return;
     const site = world.siteAt(playerPos.x, playerPos.z);
@@ -70,7 +68,6 @@ export function createSpike(scene, world) {
   function step(dt, ctx) {
     if (spike.status !== 'planted') return;
     spike.timer -= dt;
-    // Blink faster as the timer runs down.
     const interval = spike.timer > 15 ? 1 : spike.timer > 7 ? 0.5 : 0.25;
     spike.beepAt += dt;
     const on = (spike.beepAt % interval) < interval * 0.4;

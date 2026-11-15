@@ -4,6 +4,7 @@
 // renders it twice, then freezes it and sets window.__shotReady.
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
+import { skyTexture } from './textures.js';
 import { mulberry32 } from './rng.js';
 import { createWorld } from './world.js';
 import { createInput } from './input.js';
@@ -29,17 +30,21 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Filmic colour: ACES rolls the dusk highlights off instead of clipping them,
-// and the output is sRGB so the palette the textures were painted in is the
-// palette on screen.
+// Filmic colour: ACES rolls the dusk highlights off; output is sRGB.
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.25;
+renderer.toneMappingExposure = 1.5;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.getElementById('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(PALETTE.skyTop);
 scene.fog = new THREE.Fog(new THREE.Color(PALETTE.horizon), 36, 100);
+// Image-based light: a faint PMREM of the sky, so steel picks up the sunset.
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envSky = skyTexture();
+envSky.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = pmrem.fromEquirectangular(envSky).texture;
+scene.environmentIntensity = 0.5;
 const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.05, 160);
 scene.add(camera);
 

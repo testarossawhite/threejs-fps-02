@@ -1,6 +1,5 @@
-// The game: one state object, one fixed-step simulation, and the wiring between
-// player, weapons, bots, spike, grenades and HUD. Rounds end win or loss, money is
-// earned and spent in the buy phase, and the first side to 4 rounds takes the yard.
+// The game: one state object, one fixed-step simulation, wiring player, weapons,
+// bots, spike, grenades and HUD. First side to 4 rounds takes the yard.
 import * as THREE from 'three';
 import {
   PHASES, MATCH_TARGET, MAX_ROUNDS, ROUND_SECONDS, BUY_SECONDS, PLANT_SECONDS,
@@ -27,17 +26,14 @@ export function createGame(deps) {
   const raycaster = new THREE.Raycaster();
   raycaster.far = 90;
 
-  // The round's team plan, called on the radio at round start: the site the Ember
-  // squad pushes. It can rotate once if the push bleeds, and the planted site
-  // overrides it. The planter is the teammate carrying the spike while the player
-  // is down (null while the player carries it).
+  // The round's team plan: the site the squad pushes, called on the radio. It can
+  // rotate once if the push bleeds; the planted site overrides it. planter is the
+  // teammate carrying the spike while the player is down (null: player carries).
   let planSite = 'A';
   let rotated = false;
   let planter = null;
 
-  // Sight views both brains pick targets from. Built once — the position vectors
-  // are the movers' own, so they stay current; only the flags are refreshed each
-  // step. Ember views face the Rust brain, Rust views face the Ember brain.
+  // Sight views both brains pick targets from; only the flags refresh each step.
   const emberViews = [
     { pos: player.state.position, alive: true, speed: 0, crouching: false, isPlayer: true, ref: null },
     ...allies.items.map((ally) => ({
@@ -69,9 +65,7 @@ export function createGame(deps) {
   }
   let tracerIndex = 0;
 
-  // Hit-spark pool: one additive glow sprite per impact, scaled up and faded in
-  // frame(). Pooled like the tracers; a spark is the flash a bullet makes when it
-  // lands on metal, concrete or a vest.
+  // Hit-spark pool: one additive glow sprite per impact, scaled and faded in frame().
   const sparks = [];
   const sparkTexture = glowTexture();
   for (let i = 0; i < SPARK_POOL; i += 1) {
@@ -107,8 +101,7 @@ export function createGame(deps) {
     _dir.subVectors(to, from);
     const len = _dir.length();
     if (len < 0.1) return;
-    // The box is centred on its midpoint; a fixed 0.5 offset used to poke it through
-    // the camera, which read as a giant beam across the frame.
+    // Centred on its midpoint — a fixed offset used to poke it through the camera.
     tracer.mesh.position.copy(from).addScaledVector(_dir, len / 2);
     tracer.mesh.lookAt(to);
     tracer.mesh.scale.set(1, 1, len);
@@ -172,8 +165,7 @@ export function createGame(deps) {
       body.health = 0;
       body.alive = false;
       state.deaths += 1;
-      // Down is not out while the squad stands: the round plays on without you,
-      // and the camera follows a teammate (see syncCamera).
+      // Down is not out while the squad stands: the round plays on (see syncCamera).
       if (spike.state.status !== 'planted' && allies.aliveCount() === 0) {
         endRound(false, 'Ember team eliminated');
       } else if (spike.state.status !== 'planted') {
@@ -182,8 +174,7 @@ export function createGame(deps) {
     }
   }
 
-  // Whoever plants — the player with E, or the carrying teammate — the team gets
-  // paid and the squad hears it, then digs in around the site.
+  // Whoever plants, the team gets paid and the squad hears it, then digs in.
   function onPlanted(plantedSite, byAlly) {
     state.plants += 1;
     state.money += REWARDS.plant;
@@ -192,8 +183,7 @@ export function createGame(deps) {
     audio.plant();
   }
 
-  // A teammate takes a hit (Rust fire or a frag). A death goes on the radio, and
-  // if the fallen teammate was carrying the spike, the carry passes on.
+  // A teammate takes a hit. A death goes on the radio; a fallen carrier drops the carry.
   function damageAlly(ally, amount) {
     const died = allies.damage(ally, amount);
     if (!died) return;
@@ -332,8 +322,7 @@ export function createGame(deps) {
   function startBuy() {
     state.phase = PHASES.BUY;
     state.phaseTime = 0;
-    // Call the round's plan now, so the squad lines up behind it in the buy phase
-    // and the player hears it the moment the round goes live.
+    // Call the round's plan now, so the squad lines up behind it from the buy phase.
     planSite = random() < 0.5 ? 'A' : 'B';
     rotated = false;
     planter = null;
@@ -454,7 +443,6 @@ export function createGame(deps) {
     state.phaseTime += dt;
     grenadeCooldown = Math.max(0, grenadeCooldown - dt);
 
-    // Round clock, or the spike clock once planted.
     if (spike.state.status === 'planted') {
       state.roundTimer = spike.state.timer;
     } else {
@@ -466,7 +454,7 @@ export function createGame(deps) {
     }
 
     if (body.alive) player.step(dt, input.state.keys);
-    weapons.step(dt);
+    weapons.step(dt, player.groundSpeed());
     refreshViews();
     allies.step(dt, allyContext());
     if (state.phase !== PHASES.LIVE) return;
@@ -479,9 +467,8 @@ export function createGame(deps) {
     if (state.phase !== PHASES.LIVE) return;
     grenades.step(dt, grenadeContext());
 
-    // Planting: the player plants by holding E inside a site, standing still.
-    // If the player is down, the first living teammate carries the spike in and
-    // plants it instead — the squad's plan does not die with the player.
+    // Planting: the player holds E inside a site, standing still. If the player is
+    // down, the first living teammate carries the spike in and plants instead.
     if (spike.state.status === 'carried') {
       let planting = false;
       if (body.alive && input.state.keys.has('KeyE')) {
@@ -505,8 +492,7 @@ export function createGame(deps) {
       }
     }
 
-    // A bleeding push rotates once: two teammates down, no plant yet, and the
-    // round clock well spent — the call goes out and the squad falls back.
+    // A bleeding push rotates once: two teammates down, no plant, clock well spent.
     if (!rotated && spike.state.status === 'carried' && body.alive
       && allies.aliveCount() <= 2 && state.phaseTime > 25) {
       rotated = true;
@@ -514,7 +500,6 @@ export function createGame(deps) {
       hud.killfeed(`Ember-1: Rotate — fall back to Site ${planSite}`, true);
     }
 
-    // Firing, reloading, weapon switching, grenades.
     if (body.alive) {
       if (input.state.firing && weapons.ready()) {
         // Auto weapons fire while held; the semi-auto pistol fires once per click.
@@ -557,7 +542,6 @@ export function createGame(deps) {
       return;
     }
 
-    // Player hitbox follows the body for bot rays.
     playerHitbox.position.set(body.position.x, body.position.y + 0.86, body.position.z);
     hud.setHealth(body.health, body.maxHealth);
     hud.setAmmo(weapons.state.mag, weapons.state.reserve, weapons.def().name, weapons.state.frags, weapons.state.smokes, weapons.state.selectedGrenade);
@@ -568,7 +552,8 @@ export function createGame(deps) {
   }
 
   function frame(dt) {
-    // Per-frame visual only: tracer and spark fades. (Weapon view-model steps in step().)
+    // Per-frame visual only: tracer and spark fades, and the yard's air.
+    world.update(dt);
     for (const tracer of tracers) {
       if (!tracer.mesh.visible) continue;
       if (tracer.life > 0) {
@@ -591,7 +576,7 @@ export function createGame(deps) {
   }
 
   function syncCamera(cameraOut) {
-    // Down but not out: ride on a living teammate's shoulder until the round ends.
+    // Down but not out: ride a living teammate's shoulder until the round ends.
     if (!body.alive && state.phase === PHASES.LIVE) {
       const ally = allies.firstAlive();
       if (ally) {
@@ -625,6 +610,16 @@ export function createGame(deps) {
     for (let i = 0; i < steps; i += 1) step(1 / 60);
   }
 
+  // The shared prologue of the three live shots: a fresh match, round 1, rifle owned.
+  function liveShot() {
+    startMatch();
+    state.phase = PHASES.LIVE;
+    state.round = 1;
+    owned.rifle = true;
+    state.loadout.primary = 'rifle';
+    weapons.equip(state.loadout);
+  }
+
   function setupShot(name) {
     shotMode = name;
     hud.hideOverlay();
@@ -637,9 +632,8 @@ export function createGame(deps) {
       bots.reset();
       allies.reset('A');
       settle(30);
-      // Stage a fight brewing: two bots walked into the mid lane, two teammates
-      // pushing up the lanes at the frame's edges — a squad, not a solo. The menu
-      // phase never steps the world, so set the group transforms beside the movers.
+      // Stage a fight brewing: two bots in the mid lane, two teammates pushing the
+      // edges. The menu phase never steps, so set group transforms beside the movers.
       for (const [unit, x, z, yaw] of [
         [bots.items[0], -3, 2, Math.PI], [bots.items[1], 4, -1, Math.PI],
         [allies.items[0], -5.4, 6.5, 0.3], [allies.items[1], 6.4, 6, -0.3],
@@ -653,26 +647,20 @@ export function createGame(deps) {
       return;
     }
     if (name === 'play') {
-      startMatch();
-      state.phase = PHASES.LIVE;
-      state.round = 1;
+      liveShot();
       state.roundTimer = ROUND_SECONDS;
-      owned.rifle = true;
-      state.loadout.primary = 'rifle';
-      weapons.equip(state.loadout);
       body.position.set(0, 0, 6);
       body.yaw = 0;
       body.pitch = 0;
       bots.reset();
-      // Clear of the silo so the bot the player aims at is visible in the frame.
+      // Clear of the silo so the aimed-at bot is visible in the frame.
       bots.items[0].mover.position.set(4.5, 0, -5);
       bots.items[0].state = 'engage';
       bots.items[0].lastSeen.copy(body.position);
       bots.items[0].lastSeenAt = elapsed;
       bots.items[1].mover.position.set(-4, 0, -4);
       bots.items[2].mover.position.set(5, 0, 3);
-      // The squad in frame: Ember-2 trading fire with the same bot from the right,
-      // Ember-3 pushing the left lane. This is a 5v5 fight, and the shot says so.
+      // The squad in frame: Ember-2 trading fire from the right, Ember-3 on the left lane.
       allies.items[0].mover.position.set(2.7, 0, 0.6);
       allies.items[0].yaw = Math.atan2(-(4.5 - 2.7), -(-5 - 0.6));
       allies.items[0].state = 'engage';
@@ -696,13 +684,8 @@ export function createGame(deps) {
       return;
     }
     if (name === 'plant') {
-      startMatch();
-      state.phase = PHASES.LIVE;
-      state.round = 1;
+      liveShot();
       state.roundTimer = ROUND_SECONDS;
-      owned.rifle = true;
-      state.loadout.primary = 'rifle';
-      weapons.equip(state.loadout);
       body.position.set(-11, 0, -10.5);
       body.yaw = -2.3;
       body.pitch = 0;
@@ -711,8 +694,7 @@ export function createGame(deps) {
       bots.items[0].state = 'route';
       bots.items[1].mover.position.set(-2, 0, -12);
       bots.items[2].mover.position.set(-13, 0, -4);
-      // Covering the plant: one teammate watches the lane in, one holds the site's
-      // east corner.
+      // Covering the plant: one teammate watches the lane in, one holds the east corner.
       allies.items[0].mover.position.set(-8.4, 0, -7.2);
       allies.items[0].yaw = -2.5;
       allies.items[1].mover.position.set(-13.6, 0, -6.2);
@@ -727,12 +709,7 @@ export function createGame(deps) {
       return;
     }
     // end: round won, overlay over the yard.
-    startMatch();
-    state.phase = PHASES.LIVE;
-    state.round = 1;
-    owned.rifle = true;
-    state.loadout.primary = 'rifle';
-    weapons.equip(state.loadout);
+    liveShot();
     body.position.set(0, 0, 4);
     bots.reset();
     bots.items[0].mover.position.set(1, 0, -3);
@@ -741,11 +718,9 @@ export function createGame(deps) {
     bots.items[0].fall = 1;
     bots.items[0].group.rotation.x = -1.45;
     bots.items[1].mover.position.set(-5, 0, -6);
-    // A teammate stands over the win at the frame's right edge.
     allies.items[0].mover.position.set(2.6, 0, -0.8);
     allies.items[0].yaw = 2.5;
     settle(10);
-    // Aim at the fallen bot so the win reads in the frame.
     aimAt(bots.aimPoint(0));
     state.phase = PHASES.ROUND_END;
     state.roundsWon = 1;

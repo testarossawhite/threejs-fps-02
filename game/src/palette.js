@@ -1,7 +1,6 @@
-// The look plan, in one place: a salvage yard at dusk, lit warm and readable — not
-// a brown cave. Amber is Ember and Site A (Foundry); teal is Site B (Depot), so the
-// two ends of the yard read apart at a glance; rust red belongs to the Rust bots
-// alone. The same names are the CSS custom properties in index.html.
+// The look plan in one place: a salvage yard at dusk, warm and readable. Amber is
+// Ember and Site A; teal is Site B; rust red belongs to the Rust bots alone. The
+// same names are the CSS custom properties in index.html.
 export const PALETTE = {
   canvas: '#3a2b1c',
   surface: '#5a4630',

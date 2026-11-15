@@ -1,6 +1,5 @@
-// Shared movement: one axis at a time against the world's box colliders, so neither
-// the player nor a bot ever walks through a wall or falls through the floor. Player and
-// bots both drive this; the player adds jump and crouch on top of it.
+// Shared movement: one axis at a time against the world's box colliders, so nothing
+// walks through a wall. Player and bots both drive this; the player adds jump/crouch.
 import * as THREE from 'three';
 
 const GRAVITY = 20;

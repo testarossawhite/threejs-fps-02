@@ -1,7 +1,6 @@
-// Procedural textures, painted on canvases at boot: no image files, no network, the
-// same bytes every run (a seeded PRNG does the noise). Each painter returns a
-// CanvasTexture ready to drop on a MeshStandardMaterial. The yard reads as dirt and
-// worn metal instead of flat colour, which is most of the "finished game" look.
+// Procedural textures, painted on canvases at boot: no image files, no network,
+// the same bytes every run (a seeded PRNG does the noise). Each painter returns a
+// CanvasTexture for a MeshStandardMaterial.
 import * as THREE from 'three';
 
 // Small deterministic PRNG so the grime lands in the same place on every load.
@@ -33,8 +32,7 @@ function toTexture(canvas, repeatX = 1, repeatY = 1) {
   return texture;
 }
 
-// Speckle + blotch pass shared by the matte surfaces: many tiny alpha rects and a
-// few big soft stains, so no area of the texture is a single flat tone.
+// Speckle + blotch pass shared by the matte surfaces, so no area is one flat tone.
 function grime(ctx, w, h, rand, speckles, stains, dark, light) {
   for (let i = 0; i < speckles; i += 1) {
     const v = rand();
@@ -57,13 +55,12 @@ function grime(ctx, w, h, rand, speckles, stains, dark, light) {
   ctx.globalAlpha = 1;
 }
 
-// Yard floor: packed dirt over asphalt — warm brown-grey, tyre arcs, pale dust.
+// Yard floor: packed dirt over asphalt, tyre arcs, pale dust.
 export function groundTexture() {
   const [canvas, ctx] = canvasOf(512, 512);
   const rand = prng(101);
   ctx.fillStyle = '#4d3b28';
   ctx.fillRect(0, 0, 512, 512);
-  // Large tonal patches so the repeat does not read as wallpaper.
   for (let i = 0; i < 26; i += 1) {
     const x = rand() * 512;
     const y = rand() * 512;
@@ -75,7 +72,6 @@ export function groundTexture() {
     ctx.fillStyle = grad;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // Tyre arcs swept across the yard.
   ctx.strokeStyle = 'rgba(30,22,14,0.35)';
   for (let i = 0; i < 7; i += 1) {
     ctx.lineWidth = 5 + rand() * 7;
@@ -87,8 +83,7 @@ export function groundTexture() {
   return toTexture(canvas, 5, 4.5);
 }
 
-// Perimeter and building walls: vertical steel panels, seams, rivets, rust weeping
-// down from the seams and grime rising from the floor line.
+// Walls: vertical steel panels, seams, rivets, rust weeping down, floor-line grime.
 export function wallTexture(repeatX = 6) {
   const [canvas, ctx] = canvasOf(512, 256);
   const rand = prng(202);
@@ -102,14 +97,12 @@ export function wallTexture(repeatX = 6) {
     ctx.fillRect(x, 0, 3, 256);
     ctx.fillStyle = 'rgba(230,205,160,0.20)';
     ctx.fillRect(x + 3, 0, 2, 256);
-    // Rivets down each seam.
     ctx.fillStyle = 'rgba(25,18,11,0.9)';
     for (let y = 16; y < 256; y += 32) {
       ctx.beginPath();
       ctx.arc(x + 10, y, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    // Rust streaks bleeding down from the seam.
     for (let i = 0; i < 5; i += 1) {
       const sx = x + 4 + rand() * 14;
       const len = 40 + rand() * 130;
@@ -123,7 +116,6 @@ export function wallTexture(repeatX = 6) {
       ctx.restore();
     }
   }
-  // Floor-line grime.
   const grad = ctx.createLinearGradient(0, 176, 0, 256);
   grad.addColorStop(0, 'rgba(20,14,8,0)');
   grad.addColorStop(1, 'rgba(20,14,8,0.55)');
@@ -133,7 +125,7 @@ export function wallTexture(repeatX = 6) {
   return toTexture(canvas, repeatX, 1);
 }
 
-// Crates: horizontal planks in a darker frame, corner brackets, stencil wear.
+// Crates: horizontal planks in a darker frame, corner brackets.
 export function crateTexture() {
   const [canvas, ctx] = canvasOf(256, 256);
   const rand = prng(303);
@@ -145,7 +137,6 @@ export function crateTexture() {
     ctx.fillRect(0, y, 256, plank);
     ctx.fillStyle = 'rgba(24,15,7,0.8)';
     ctx.fillRect(0, y, 256, 3);
-    // Wood grain runs.
     ctx.strokeStyle = 'rgba(52,34,14,0.35)';
     ctx.lineWidth = 1.4;
     for (let i = 0; i < 6; i += 1) {
@@ -156,7 +147,6 @@ export function crateTexture() {
       ctx.stroke();
     }
   }
-  // Frame and corner brackets.
   ctx.strokeStyle = '#4c361c';
   ctx.lineWidth = 22;
   ctx.strokeRect(0, 0, 256, 256);
@@ -166,8 +156,7 @@ export function crateTexture() {
   return toTexture(canvas, 1, 1);
 }
 
-// Shipping containers: vertical corrugation ribs with light/shade pairs, rust at the
-// ribs' feet, a heavier top and bottom rail. Tint comes from the material colour.
+// Containers: corrugation ribs, rust at the feet, heavy rails. Tint from material.
 export function containerTexture() {
   const [canvas, ctx] = canvasOf(256, 256);
   const rand = prng(404);
@@ -183,7 +172,6 @@ export function containerTexture() {
   ctx.fillStyle = 'rgba(52,46,40,0.85)';
   ctx.fillRect(0, 0, 256, 14);
   ctx.fillRect(0, 242, 256, 14);
-  // Rust blooming along the bottom rail and around random rib feet.
   for (let i = 0; i < 16; i += 1) {
     const x = rand() * 256;
     const grad = ctx.createRadialGradient(x, 250, 0, x, 250, 16 + rand() * 30);
@@ -196,8 +184,7 @@ export function containerTexture() {
   return toTexture(canvas, 2, 1);
 }
 
-// Barrels: a painted drum with two rolled bands and a worn lid line. The material
-// colour tints it (rust red, steel, amber).
+// Barrels: a painted drum with two rolled bands. Tint from the material colour.
 export function barrelTexture() {
   const [canvas, ctx] = canvasOf(128, 256);
   const rand = prng(505);
@@ -215,8 +202,7 @@ export function barrelTexture() {
   return toTexture(canvas, 1, 1);
 }
 
-// Poured concrete for the site platform and low walls: grey-warm, stained, with a
-// formwork line across the middle.
+// Poured concrete: grey-warm, stained, a formwork line across the middle.
 export function concreteTexture() {
   const [canvas, ctx] = canvasOf(256, 256);
   const rand = prng(606);
@@ -254,8 +240,7 @@ export function hazardTexture() {
   return toTexture(canvas, 3, 1);
 }
 
-// Dusk sky for the dome: indigo up top, a mauve band, then the amber afterglow the
-// sun has just left at the horizon. Painted wide so it wraps the whole sphere.
+// Dusk sky: indigo up top, a mauve band, amber afterglow at the horizon.
 export function skyTexture() {
   const [canvas, ctx] = canvasOf(1024, 512);
   const grad = ctx.createLinearGradient(0, 0, 0, 512);
@@ -267,14 +252,12 @@ export function skyTexture() {
   grad.addColorStop(1, '#8a5a30');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 1024, 512);
-  // The sun's afterglow, low in the west (the key light comes from -x).
   const glow = ctx.createRadialGradient(180, 430, 0, 180, 430, 340);
   glow.addColorStop(0, 'rgba(255,196,110,0.85)');
   glow.addColorStop(0.4, 'rgba(255,160,80,0.35)');
   glow.addColorStop(1, 'rgba(255,150,70,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 1024, 512);
-  // First stars in the upper sky.
   const rand = prng(808);
   ctx.fillStyle = '#dfe6ff';
   for (let i = 0; i < 130; i += 1) {
@@ -289,8 +272,7 @@ export function skyTexture() {
   return texture;
 }
 
-// One soft cloud blob, alpha-faded at the edges, for billboard clouds catching the
-// last light (drawn lit from below: warm base, cool top).
+// One soft cloud blob, alpha-faded at the edges, for billboards and stack smoke.
 export function cloudTexture() {
   const [canvas, ctx] = canvasOf(256, 128);
   const rand = prng(909);
@@ -306,6 +288,196 @@ export function cloudTexture() {
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+// Gunmetal: near-black steel, horizontal brushing, wear scratches, stencil marking.
+export function gunMetalTexture(marking) {
+  const [canvas, ctx] = canvasOf(256, 256);
+  const rand = prng(111);
+  ctx.fillStyle = '#43464c';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 380; i += 1) {
+    ctx.strokeStyle = rand() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.16)';
+    ctx.lineWidth = 1;
+    const y = rand() * 256;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(256, y + rand() * 2 - 1);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 22; i += 1) {
+    ctx.strokeStyle = 'rgba(210,214,220,0.35)';
+    ctx.lineWidth = 0.8;
+    const x = rand() * 256;
+    const y = rand() * 256;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 8 + rand() * 26, y + rand() * 3 - 1.5);
+    ctx.stroke();
+  }
+  grime(ctx, 256, 256, rand, 900, 4, 'rgba(10,10,12,1)', 'rgba(190,196,204,1)');
+  if (marking) {
+    ctx.fillStyle = 'rgba(226,230,236,0.85)';
+    ctx.font = 'bold 21px ui-monospace, monospace';
+    ctx.fillText(marking, 18, 42);
+    ctx.font = '13px ui-monospace, monospace';
+    ctx.fillStyle = 'rgba(226,230,236,0.5)';
+    ctx.fillText('CAL 5.56 · DW ARMORY', 18, 64);
+  }
+  return toTexture(canvas, 1, 1);
+}
+
+// Polymer furniture: near-black with a stippled grip texture and mould seams.
+export function polymerTexture() {
+  const [canvas, ctx] = canvasOf(128, 128);
+  const rand = prng(222);
+  ctx.fillStyle = '#242322';
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  for (let y = 4; y < 128; y += 8) {
+    for (let x = 4 + (y % 16 === 4 ? 0 : 4); x < 128; x += 8) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 62, 128, 2);
+  grime(ctx, 128, 128, rand, 260, 2, 'rgba(0,0,0,1)', 'rgba(200,200,200,1)');
+  return toTexture(canvas, 1, 1);
+}
+
+// Desert camo for the carbine receiver and the squad's sleeves.
+export function camoTexture() {
+  const [canvas, ctx] = canvasOf(256, 256);
+  const rand = prng(333);
+  ctx.fillStyle = '#9a7c50';
+  ctx.fillRect(0, 0, 256, 256);
+  const tones = ['#6f6a3e', '#5d4a30', '#3f3a30', '#b08d5a'];
+  for (let i = 0; i < 46; i += 1) {
+    ctx.fillStyle = tones[i % tones.length];
+    ctx.globalAlpha = 0.5 + rand() * 0.3;
+    const x = rand() * 256;
+    const y = rand() * 256;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 14 + rand() * 30, 8 + rand() * 18, rand() * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  grime(ctx, 256, 256, rand, 700, 3, 'rgba(30,22,12,1)', 'rgba(230,205,160,1)');
+  return toTexture(canvas, 1, 1);
+}
+
+// Ground decals, worn transparent: oil stains, an arrow, site letters, cracks.
+// Speckled with destination-out so the dirt shows through the wear.
+export function decalTexture(kind) {
+  const [canvas, ctx] = canvasOf(256, 256);
+  const rand = prng(444);
+  ctx.clearRect(0, 0, 256, 256);
+  if (kind === 'oil') {
+    for (let i = 0; i < 9; i += 1) {
+      const x = 70 + rand() * 116;
+      const y = 70 + rand() * 116;
+      const r = 22 + rand() * 52;
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, 'rgba(12,10,8,0.82)');
+      grad.addColorStop(0.7, 'rgba(14,12,9,0.5)');
+      grad.addColorStop(1, 'rgba(14,12,9,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  } else if (kind === 'arrow') {
+    ctx.fillStyle = 'rgba(232,220,190,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(128, 18);
+    ctx.lineTo(196, 108);
+    ctx.lineTo(152, 108);
+    ctx.lineTo(152, 238);
+    ctx.lineTo(104, 238);
+    ctx.lineTo(104, 108);
+    ctx.lineTo(60, 108);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind === 'cracks') {
+    ctx.strokeStyle = 'rgba(16,12,8,0.65)';
+    for (let i = 0; i < 7; i += 1) {
+      ctx.lineWidth = 1 + rand() * 1.6;
+      let x = 30 + rand() * 196;
+      let y = 30 + rand() * 196;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 5; j += 1) {
+        x += rand() * 44 - 22;
+        y += rand() * 44 - 10;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = kind === 'letterA' ? 'rgba(240,166,62,0.85)' : 'rgba(63,191,174,0.85)';
+    ctx.font = 'bold 190px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(kind === 'letterA' ? 'A' : 'B', 128, 138);
+  }
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 1500; i += 1) {
+    ctx.globalAlpha = 0.12 + rand() * 0.4;
+    ctx.fillRect(rand() * 256, rand() * 256, 1 + rand() * 4, 1 + rand() * 4);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+// A worn paper poster for the walls: stencil headline, small print, hazard foot.
+export function posterTexture(title, sub, color) {
+  const [canvas, ctx] = canvasOf(256, 320);
+  const rand = prng(555);
+  ctx.fillStyle = '#c9b892';
+  ctx.fillRect(0, 0, 256, 320);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 256, 14);
+  ctx.fillRect(0, 292, 256, 28);
+  ctx.fillStyle = '#2b2119';
+  ctx.font = 'bold 40px system-ui, sans-serif';
+  const words = title.split(' ');
+  words.forEach((word, i) => ctx.fillText(word, 20, 78 + i * 46));
+  ctx.font = '17px system-ui, sans-serif';
+  ctx.fillStyle = '#57462e';
+  const subWords = sub.split(' ');
+  let line = '';
+  let ly = 78 + words.length * 46 + 16;
+  for (const word of subWords) {
+    if ((line + word).length > 24) {
+      ctx.fillText(line, 20, ly);
+      ly += 24;
+      line = '';
+    }
+    line += `${word} `;
+  }
+  if (line) ctx.fillText(line, 20, ly);
+  ctx.fillStyle = '#1d150e';
+  for (let i = 0; i < 5; i += 1) {
+    ctx.save();
+    ctx.translate(i * 56 - 8, 292);
+    ctx.beginPath();
+    ctx.moveTo(0, 28);
+    ctx.lineTo(14, 28);
+    ctx.lineTo(40, 0);
+    ctx.lineTo(26, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  grime(ctx, 256, 320, rand, 800, 4, 'rgba(40,30,16,1)', 'rgba(240,228,200,1)');
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
   return texture;
 }
 

@@ -1,15 +1,12 @@
-// The Ember teammates: four attackers who fight beside the player and make the
-// match a 5v5. They play the team's plan — at round start game.js calls a site and
-// announces it on the radio; the squad routes there through the waypoint graph,
-// takes hold positions around the site, engages the Rust bots it can see with the
-// same burst discipline the defenders use, and converges to defend the spike once
-// it is planted. If the player goes down with the spike unplanted, the first
-// living teammate picks the carry up and plants it. Eyes and legs come from
-// combat.js, shared with the Rust brain; only the wanting differs.
+// The Ember teammates: four attackers who make the match a 5v5. They play the
+// team's plan — game.js calls a site on the radio; the squad routes there, holds
+// around it, engages, and converges to defend a planted spike. If the player goes
+// down with the spike unplanted, the first living teammate picks up the carry and
+// plants it. Eyes and legs come from combat.js; only the wanting differs.
 import * as THREE from 'three';
 import { createMover } from './mover.js';
-import { buildSoldier } from './soldier.js';
-import { faceYaw, moveToward, pickVisible } from './combat.js';
+import { buildSoldier, animateSoldier } from './soldier.js';
+import { engageMove, moveToward, pickVisible } from './combat.js';
 import { PALETTE } from './palette.js';
 import { range } from './rng.js';
 
@@ -18,20 +15,15 @@ const ALLY_SPEED = 3.4;
 const ALLY_ACCEL = 30;
 const ALLY_FRICTION = 8;
 const SEE_DISTANCE = 34;
-const BURST_MIN = 3;
-const BURST_MAX = 5;
-const SHOT_GAP = 0.11;
 const DAMAGE = 14;
 const HEAD_DAMAGE = 28;
 
-// Where each teammate settles around a site centre: a loose ring with angles on
-// the lanes, never a clump.
+// Where each teammate settles around a site centre: a loose ring, never a clump.
 const HOLD_OFFSETS = [
   [2.3, 1.1], [-2.3, 1.7], [1.5, -2.5], [-1.9, -2.3],
 ];
 
 const _dir = new THREE.Vector3();
-const _toTarget = new THREE.Vector3();
 const _muzzle = new THREE.Vector3();
 const _aim = new THREE.Vector3();
 const _far = new THREE.Vector3();
@@ -56,6 +48,7 @@ export function createAllies(scene, world, random) {
       group,
       torso,
       head,
+      soldier: built,
       mover,
       health: HEALTH,
       alive: true,
@@ -77,6 +70,8 @@ export function createAllies(scene, world, random) {
       strafeUntil: 0,
       scanPhase: random() * Math.PI * 2,
       fall: 0,
+      flinch: 0,
+      deadTime: 0,
       walkPhase: random() * 6,
     };
     torso.userData.ally = ally;
@@ -104,10 +99,10 @@ export function createAllies(scene, world, random) {
     setRoute(ally, siteWaypoint(siteName));
   }
 
-  // Taking damage is routed here from Rust fire and from grenades alike; game.js
-  // hears about a death through the return value and puts it on the radio.
+  // Damage routes here from Rust fire and grenades; game.js radios a death.
   function damage(ally, amount) {
     if (!ally || !ally.alive) return false;
+    ally.flinch = 1;
     ally.health -= amount;
     if (ally.health > 0) return false;
     ally.alive = false;
@@ -120,15 +115,12 @@ export function createAllies(scene, world, random) {
     for (const ally of items) {
       if (!ally.alive) {
         ally.fall = Math.min(1, ally.fall + dt / 0.4);
-        ally.group.rotation.x = -ally.fall * 1.45;
-        ally.group.position.y = -ally.fall * 0.08;
+        ally.deadTime += dt;
         continue;
       }
-      ally.group.rotation.x = 0;
-      ally.group.position.y = 0;
+      ally.flinch = Math.max(0, ally.flinch - dt * 4);
 
-      // The plan changed under them (a rotation call, or the spike went down at
-      // the other site): re-route, unless they are mid-fight.
+      // The plan changed under them (rotation call, or spike down elsewhere): re-route.
       const wantedSite = ctx.spikePlanted ? ctx.spikeSite : ctx.planSite;
       if (wantedSite && ally.planSite !== wantedSite && ally.state !== 'engage') {
         planRoute(ally, wantedSite);
@@ -158,34 +150,7 @@ export function createAllies(scene, world, random) {
           setRoute(ally, siteWaypoint(ally.planSite));
           continue;
         }
-        _toTarget.copy(target.mover.position).sub(ally.mover.position);
-        const dist = Math.hypot(_toTarget.x, _toTarget.z);
-        faceYaw(ally, Math.atan2(-_toTarget.x, -_toTarget.z), dt, 8);
-        if (ctx.time > ally.strafeUntil) {
-          ally.strafeDir = random() < 0.5 ? -1 : 1;
-          ally.strafeUntil = ctx.time + range(random, 0.7, 1.6);
-        }
-        const strafeX = Math.cos(ally.yaw) * ally.strafeDir;
-        const strafeZ = -Math.sin(ally.yaw) * ally.strafeDir;
-        const approach = dist > 16 ? 0.7 : dist < 7 ? -0.5 : 0;
-        const wishX = strafeX * 0.8 + (-Math.sin(ally.yaw)) * approach;
-        const wishZ = strafeZ * 0.8 + (-Math.cos(ally.yaw)) * approach;
-        const wishLen = Math.hypot(wishX, wishZ) || 1;
-        ally.mover.step(dt, wishX / wishLen, wishZ / wishLen, ALLY_SPEED * 0.7, ALLY_ACCEL, ALLY_FRICTION);
-        ally.walkPhase += dt * 9;
-
-        if (ctx.time >= ally.reactionAt && ctx.time >= ally.pauseUntil) {
-          if (ally.burstLeft <= 0) {
-            ally.burstLeft = BURST_MIN + Math.floor(random() * (BURST_MAX - BURST_MIN + 1));
-            ally.nextShotAt = ctx.time;
-          }
-          if (ctx.time >= ally.nextShotAt) {
-            ally.nextShotAt = ctx.time + SHOT_GAP;
-            ally.burstLeft -= 1;
-            fireAt(ally, ctx);
-            if (ally.burstLeft <= 0) ally.pauseUntil = ctx.time + range(random, 0.6, 1.2);
-          }
-        }
+        engageMove(ally, target.mover.position, dt, ctx.time, random, ALLY_SPEED, ALLY_ACCEL, ALLY_FRICTION, () => fireAt(ally, ctx));
         if (!seen && ctx.time - ally.lastSeenAt > 2.5) {
           ally.state = 'advance';
           setRoute(ally, siteWaypoint(ally.planSite));
@@ -193,9 +158,7 @@ export function createAllies(scene, world, random) {
         continue;
       }
 
-      // The designated carrier plants when the player is down: walk the plan,
-      // and inside the site, stop and work. game.js runs the plant clock itself
-      // while state reads 'plant'.
+      // The designated carrier plants when the player is down; game.js runs the clock.
       if (ctx.planter === ally && !ctx.spikePlanted) {
         const site = world.siteAt(ally.mover.position.x, ally.mover.position.z);
         if (site) {
@@ -237,11 +200,14 @@ export function createAllies(scene, world, random) {
       ally.group.position.x = ally.mover.position.x;
       ally.group.position.z = ally.mover.position.z;
       ally.group.rotation.y = ally.yaw;
-      if (ally.alive && (ally.state === 'advance' || ally.state === 'engage')) {
-        const bob = Math.sin(ally.walkPhase) * 0.04;
-        ally.group.children[2].position.y = 0.28 + Math.max(0, bob);
-        ally.group.children[3].position.y = 0.28 + Math.max(0, -bob);
-      }
+      animateSoldier(ally.soldier, {
+        dt,
+        phase: ally.walkPhase,
+        moving: ally.alive && (ally.state === 'advance' || ally.state === 'engage'),
+        flinch: ally.flinch,
+        fall: ally.fall,
+        fade: Math.max(0, Math.min(1, (ally.deadTime - 1) / 1.5)),
+      });
     }
   }
 
@@ -290,6 +256,9 @@ export function createAllies(scene, world, random) {
       ally.alive = true;
       ally.yaw = 0;
       ally.fall = 0;
+      ally.flinch = 0;
+      ally.deadTime = 0;
+      ally.soldier.resetVisual();
       ally.target = null;
       ally.contacted = false;
       ally.burstLeft = 0;

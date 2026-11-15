@@ -1,6 +1,5 @@
-// Keyboard and mouse, and the pointer lock that turns the mouse into look. Plain
-// browser APIs only. `pressed` carries edge-triggered keys (E, G, B, 1-5, Q, Enter)
-// that the game consumes once per frame.
+// Keyboard and mouse, and the pointer lock that turns the mouse into look. `pressed`
+// carries edge-triggered keys (E, G, B, 1-5, Q, Enter), consumed once per frame.
 export function createInput(canvas, onLockChange) {
   const keys = new Set();
   const pressed = new Set();

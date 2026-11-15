@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 const T = THREE;
+	const P = Math.PI;
 import { range } from './rng.js';
 const BURST_MIN = 3;
 const BURST_MAX = 5;
@@ -11,8 +12,8 @@ const _chest = new T.Vector3();
 const _dir = new T.Vector3();
 export function faceYaw(body,targetYaw,dt,rate = 6) {
 	let diff = targetYaw - body.yaw;
-	while (diff > Math.PI) diff -= Math.PI * 2;
-	while (diff < -Math.PI) diff += Math.PI * 2;
+	while (diff > P) diff -= P * 2;
+	while (diff < -P) diff += P * 2;
 	body.yaw += Math.max(-rate * dt,Math.min(rate * dt,diff));
 }
 export function moveToward(body,target,dt,speed,accel,friction) {
@@ -48,7 +49,7 @@ export function engageMove(unit,targetPos,dt,time,random,speed,accel,friction,fi
 		}
 		if (time >= unit.nextShotAt) {
 			unit.nextShotAt = time + SHOT_GAP;
-			unit.burstLeft -= 1;
+			unit.burstLeft--;
 			fire(unit);
 			if (unit.burstLeft <= 0) unit.pauseUntil = time + range(random,0.6,1.2);
 		}

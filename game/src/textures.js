@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 const T = THREE;
+	const P = Math.PI;
 function prng(seed) {
 	let a = seed >>> 0;
 	return () => {
@@ -29,15 +30,21 @@ function toTex(canvas,repeatX = 1,repeatY = 1) {
 	texture.anisotropy = 4;
 	return texture;
 }
+export function flatTex(canvas,aniso = 0) {
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
+	if (aniso) texture.anisotropy = aniso;
+	return texture;
+}
 function grime(ctx,w,h,rand,speckles,stains,dark,light) {
-	for (let i = 0; i < speckles; i += 1) {
+	for (let i = 0; i < speckles; i++) {
 		const v = rand();
 		ctx.fillStyle = v < 0.5 ? dark : light;
 		ctx.globalAlpha = 0.04 + rand() * 0.1;
 		const s = 1 + rand() * 3;
 		ctx.fillRect(rand() * w,rand() * h,s,s);
 	}
-	for (let i = 0; i < stains; i += 1) {
+	for (let i = 0; i < stains; i++) {
 		const x = rand() * w;
 		const y = rand() * h;
 		const r = 20 + rand() * 70;
@@ -53,7 +60,7 @@ export function groundTexture() {
 	const [canvas,ctx] = cvOf(512,512);
 	const rand = prng(101);
 	R(ctx,'#6e675c',0,0,512,512);
-	for (let i = 0; i < 30; i += 1) {
+	for (let i = 0; i < 30; i++) {
 		const x = rand() * 512;
 		const y = rand() * 512;
 		const r = 40 + rand() * 130;
@@ -73,13 +80,13 @@ export function groundTexture() {
 	ctx.lineTo(512,256);
 	ctx.stroke();
 	ctx.strokeStyle = 'rgba(24,22,18,0.55)';
-	for (let i = 0; i < 9; i += 1) {
+	for (let i = 0; i < 9; i++) {
 		ctx.lineWidth = 1 + rand() * 1.6;
 		let x = rand() * 512;
 		let y = rand() * 512;
 		ctx.beginPath();
 		ctx.moveTo(x,y);
-		for (let j = 0; j < 5; j += 1) {
+		for (let j = 0; j < 5; j++) {
 			x += rand() * 70 - 35;
 			y += rand() * 70 - 35;
 			ctx.lineTo(x,y);
@@ -87,7 +94,7 @@ export function groundTexture() {
 		ctx.stroke();
 	}
 	ctx.strokeStyle = 'rgba(30,26,20,0.28)';
-	for (let i = 0; i < 6; i += 1) {
+	for (let i = 0; i < 6; i++) {
 		ctx.lineWidth = 6 + rand() * 8;
 		ctx.beginPath();
 		ctx.arc(rand() * 512,rand() * 512,40 + rand() * 130,rand() * 3,rand() * 2 + 0.6);
@@ -102,9 +109,9 @@ export function wallTexture(repeatX = 6) {
 	R(ctx,'#b3a48f',0,0,512,256);
 	const bw = 46;
 	const bh = 15;
-	for (let row = 0; row * bh < 256; row += 1) {
+	for (let row = 0; row * bh < 256; row++) {
 		const off = row % 2 ? -bw / 2 : 0;
-		for (let col = -1; col * bw < 512 + bw; col += 1) {
+		for (let col = -1; col * bw < 512 + bw; col++) {
 			const x = col * bw + off;
 			const y = row * bh;
 			const r = 138 + rand() * 44;
@@ -118,7 +125,7 @@ export function wallTexture(repeatX = 6) {
 			}
 		}
 	}
-	for (let i = 0; i < 7; i += 1) {
+	for (let i = 0; i < 7; i++) {
 		const sx = rand() * 512;
 		const len = 50 + rand() * 140;
 		const grad = ctx.createLinearGradient(0,0,0,len);
@@ -143,7 +150,7 @@ export function crateTexture() {
 		R(ctx,'rgba(24,15,7,0.8)',0,y,256,3);
 		ctx.strokeStyle = 'rgba(52,34,14,0.35)';
 		ctx.lineWidth = 1.4;
-		for (let i = 0; i < 6; i += 1) {
+		for (let i = 0; i < 6; i++) {
 			const gy = y + 6 + rand() * (plank - 12);
 			ctx.beginPath();
 			ctx.moveTo(0,gy);
@@ -154,6 +161,11 @@ export function crateTexture() {
 	ctx.strokeStyle = '#4c361c';
 	ctx.lineWidth = 22;
 	ctx.strokeRect(0,0,256,256);
+	ctx.fillStyle = 'rgba(30,22,14,0.6)';
+	ctx.font = 'bold 36px ui-monospace, monospace';
+	ctx.fillText('DW-7',86,142);
+	ctx.font = '15px ui-monospace, monospace';
+	ctx.fillText('TOOLS - FRAGILE',86,164);
 	ctx.fillStyle = 'rgba(30,24,20,0.9)';
 	for (const [x,y] of [[0,0],[232,0],[0,232],[232,232]]) ctx.fillRect(x,y,24,24);
 	grime(ctx,256,256,rand,1500,6,'rgba(26,17,8,1)','rgba(215,185,130,1)');
@@ -170,7 +182,15 @@ export function containerTexture() {
 	}
 	R(ctx,'rgba(52,46,40,0.85)',0,0,256,14);
 	ctx.fillRect(0,242,256,14);
-	for (let i = 0; i < 16; i += 1) {
+	for (let i = 0; i < 10; i++) {
+		const x = rand() * 256;
+		const len = 90 + rand() * 150;
+		const grad = ctx.createLinearGradient(0,14,0,len);
+		grad.addColorStop(0,'rgba(52,44,36,0.32)');
+		grad.addColorStop(1,'rgba(52,44,36,0)');
+		R(ctx,grad,x,14,3 + rand() * 6,len);
+	}
+	for (let i = 0; i < 16; i++) {
 		const x = rand() * 256;
 		const grad = ctx.createRadialGradient(x,250,0,x,250,16 + rand() * 30);
 		grad.addColorStop(0,'rgba(150,76,38,0.55)');
@@ -203,17 +223,16 @@ export function concreteTexture() {
 	R(ctx,'#7d7264',0,0,256,256);
 	R(ctx,'rgba(30,24,17,0.5)',0,126,256,3);
 	R(ctx,'rgba(235,220,190,0.16)',0,129,256,2);
-	ctx.fillStyle = 'rgba(35,30,24,0.6)';
 	for (const hx of [42,128,214]) {
 		for (const hy of [42,128,214]) {
-			ctx.beginPath();
-			ctx.arc(hx,hy,5,0,Math.PI * 2);
-			ctx.fill();
 			R(ctx,'rgba(235,225,200,0.18)',hx - 5,hy + 5,10,2);
 			ctx.fillStyle = 'rgba(35,30,24,0.6)';
+			ctx.beginPath();
+			ctx.arc(hx,hy,5,0,P * 2);
+			ctx.fill();
 		}
 	}
-	for (let i = 0; i < 6; i += 1) {
+	for (let i = 0; i < 6; i++) {
 		const sx = rand() * 256;
 		const grad = ctx.createLinearGradient(sx,0,sx + 14,0);
 		grad.addColorStop(0,'rgba(52,44,34,0.22)');
@@ -227,7 +246,7 @@ export function hazardTexture() {
 	const [canvas,ctx] = cvOf(128,128);
 	R(ctx,'#c8912f',0,0,128,128);
 	ctx.fillStyle = '#2b2119';
-	for (let i = -2; i < 6; i += 1) {
+	for (let i = -2; i < 6; i++) {
 		ctx.save();
 		ctx.translate(i * 36,0);
 		ctx.rotate(0);
@@ -258,15 +277,13 @@ export function skyTexture() {
 	glow.addColorStop(0.25,'rgba(255,238,190,0.45)');
 	glow.addColorStop(1,'rgba(255,238,190,0)');
 	R(ctx,glow,0,0,1024,512);
-	const texture = new T.CanvasTexture(canvas);
-	texture.colorSpace = T.SRGBColorSpace;
-	return texture;
+	return flatTex(canvas);
 }
 export function buildingTexture() {
 	const [canvas,ctx] = cvOf(256,256);
 	const rand = prng(1212);
 	R(ctx,'#97a1a8',0,0,256,256);
-	for (let i = 0; i < 9; i += 1) {
+	for (let i = 0; i < 9; i++) {
 		const x = rand() * 256;
 		const grad = ctx.createLinearGradient(x,0,x + 30,0);
 		grad.addColorStop(0,'rgba(60,58,50,0.16)');
@@ -277,8 +294,8 @@ export function buildingTexture() {
 	ctx.lineWidth = 2;
 	for (let x = 0; x <= 256; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,256); ctx.stroke(); }
 	for (let y = 0; y <= 256; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(256,y); ctx.stroke(); }
-	for (let row = 0; row < 8; row += 1) {
-		for (let col = 0; col < 6; col += 1) {
+	for (let row = 0; row < 8; row++) {
+		for (let col = 0; col < 6; col++) {
 			const x = 14 + col * 40;
 			const y = 14 + row * 30;
 			const lit = rand();
@@ -306,7 +323,7 @@ export function buildingTexture() {
 export function cloudTexture() {
 	const [canvas,ctx] = cvOf(256,128);
 	const rand = prng(909);
-	for (let i = 0; i < 26; i += 1) {
+	for (let i = 0; i < 26; i++) {
 		const x = 40 + rand() * 176;
 		const y = 52 + rand() * 26;
 		const r = 16 + rand() * 30;
@@ -315,15 +332,13 @@ export function cloudTexture() {
 		grad.addColorStop(1,'rgba(255,255,255,0)');
 		R(ctx,grad,x - r,y - r,r * 2,r * 2);
 	}
-	const texture = new T.CanvasTexture(canvas);
-	texture.colorSpace = T.SRGBColorSpace;
-	return texture;
+	return flatTex(canvas);
 }
 export function gunMetalTexture(marking) {
 	const [canvas,ctx] = cvOf(256,256);
 	const rand = prng(111);
 	R(ctx,'#43464c',0,0,256,256);
-	for (let i = 0; i < 380; i += 1) {
+	for (let i = 0; i < 380; i++) {
 		ctx.strokeStyle = rand() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.16)';
 		ctx.lineWidth = 1;
 		const y = rand() * 256;
@@ -332,7 +347,7 @@ export function gunMetalTexture(marking) {
 		ctx.lineTo(256,y + rand() * 2 - 1);
 		ctx.stroke();
 	}
-	for (let i = 0; i < 22; i += 1) {
+	for (let i = 0; i < 22; i++) {
 		ctx.strokeStyle = 'rgba(210,214,220,0.35)';
 		ctx.lineWidth = 0.8;
 		const x = rand() * 256;
@@ -342,6 +357,9 @@ export function gunMetalTexture(marking) {
 		ctx.lineTo(x + 8 + rand() * 26,y + rand() * 3 - 1.5);
 		ctx.stroke();
 	}
+	R(ctx,'rgba(10,10,12,0.55)',0,118,256,3);
+	R(ctx,'rgba(215,220,226,0.16)',0,122,256,2);
+	R(ctx,'rgba(10,10,12,0.4)',0,196,256,2);
 	grime(ctx,256,256,rand,900,4,'rgba(10,10,12,1)','rgba(190,196,204,1)');
 	if (marking) {
 		ctx.fillStyle = 'rgba(226,230,236,0.85)';
@@ -361,7 +379,7 @@ export function polymerTexture() {
 	for (let y = 4; y < 128; y += 8) {
 		for (let x = 4 + (y % 16 === 4 ? 0 : 4); x < 128; x += 8) {
 			ctx.beginPath();
-			ctx.arc(x,y,1.4,0,Math.PI * 2);
+			ctx.arc(x,y,1.4,0,P * 2);
 			ctx.fill();
 		}
 	}
@@ -374,13 +392,13 @@ export function camoTexture() {
 	const rand = prng(333);
 	R(ctx,'#9a7c50',0,0,256,256);
 	const tones = ['#6f6a3e','#5d4a30','#3f3a30','#b08d5a'];
-	for (let i = 0; i < 46; i += 1) {
+	for (let i = 0; i < 46; i++) {
 		ctx.fillStyle = tones[i % tones.length];
 		ctx.globalAlpha = 0.5 + rand() * 0.3;
 		const x = rand() * 256;
 		const y = rand() * 256;
 		ctx.beginPath();
-		ctx.ellipse(x,y,14 + rand() * 30,8 + rand() * 18,rand() * 3,0,Math.PI * 2);
+		ctx.ellipse(x,y,14 + rand() * 30,8 + rand() * 18,rand() * 3,0,P * 2);
 		ctx.fill();
 	}
 	ctx.globalAlpha = 1;
@@ -392,7 +410,7 @@ export function decalTexture(kind) {
 	const rand = prng(444);
 	ctx.clearRect(0,0,256,256);
 	if (kind === 'oil') {
-		for (let i = 0; i < 9; i += 1) {
+		for (let i = 0; i < 9; i++) {
 			const x = 70 + rand() * 116;
 			const y = 70 + rand() * 116;
 			const r = 22 + rand() * 52;
@@ -416,13 +434,13 @@ export function decalTexture(kind) {
 		ctx.fill();
 	} else if (kind === 'cracks') {
 		ctx.strokeStyle = 'rgba(16,12,8,0.65)';
-		for (let i = 0; i < 7; i += 1) {
+		for (let i = 0; i < 7; i++) {
 			ctx.lineWidth = 1 + rand() * 1.6;
 			let x = 30 + rand() * 196;
 			let y = 30 + rand() * 196;
 			ctx.beginPath();
 			ctx.moveTo(x,y);
-			for (let j = 0; j < 5; j += 1) {
+			for (let j = 0; j < 5; j++) {
 				x += rand() * 44 - 22;
 				y += rand() * 44 - 10;
 				ctx.lineTo(x,y);
@@ -433,11 +451,11 @@ export function decalTexture(kind) {
 		ctx.strokeStyle = kind === 'ringA' ? 'rgba(240,166,62,0.9)' : 'rgba(47,174,157,0.9)';
 		ctx.lineWidth = 13;
 		ctx.beginPath();
-		ctx.arc(128,128,104,0,Math.PI * 2);
+		ctx.arc(128,128,104,0,P * 2);
 		ctx.stroke();
 		ctx.lineWidth = 4;
 		ctx.beginPath();
-		ctx.arc(128,128,84,0,Math.PI * 2);
+		ctx.arc(128,128,84,0,P * 2);
 		ctx.stroke();
 	} else {
 		ctx.fillStyle = kind === 'letterA' ? 'rgba(240,166,62,0.85)' : 'rgba(63,191,174,0.85)';
@@ -447,16 +465,13 @@ export function decalTexture(kind) {
 		ctx.fillText(kind === 'letterA' ? 'A' : 'B',128,138);
 	}
 	ctx.globalCompositeOperation = 'destination-out';
-	for (let i = 0; i < 1500; i += 1) {
+	for (let i = 0; i < 1500; i++) {
 		ctx.globalAlpha = 0.12 + rand() * 0.4;
 		ctx.fillRect(rand() * 256,rand() * 256,1 + rand() * 4,1 + rand() * 4);
 	}
 	ctx.globalCompositeOperation = 'source-over';
 	ctx.globalAlpha = 1;
-	const texture = new T.CanvasTexture(canvas);
-	texture.colorSpace = T.SRGBColorSpace;
-	texture.anisotropy = 4;
-	return texture;
+	return flatTex(canvas,4);
 }
 export function posterTexture(title,sub,color) {
 	const [canvas,ctx] = cvOf(256,320);
@@ -483,7 +498,7 @@ export function posterTexture(title,sub,color) {
 	}
 	if (line) ctx.fillText(line,20,ly);
 	ctx.fillStyle = '#1d150e';
-	for (let i = 0; i < 5; i += 1) {
+	for (let i = 0; i < 5; i++) {
 		ctx.save();
 		ctx.translate(i * 56 - 8,292);
 		ctx.beginPath();
@@ -496,10 +511,7 @@ export function posterTexture(title,sub,color) {
 		ctx.restore();
 	}
 	grime(ctx,256,320,rand,800,4,'rgba(40,30,16,1)','rgba(240,228,200,1)');
-	const texture = new T.CanvasTexture(canvas);
-	texture.colorSpace = T.SRGBColorSpace;
-	texture.anisotropy = 4;
-	return texture;
+	return flatTex(canvas,4);
 }
 export function glowTexture() {
 	const [canvas,ctx] = cvOf(128,128);
@@ -508,7 +520,5 @@ export function glowTexture() {
 	grad.addColorStop(0.25,'rgba(255,255,255,0.55)');
 	grad.addColorStop(1,'rgba(255,255,255,0)');
 	R(ctx,grad,0,0,128,128);
-	const texture = new T.CanvasTexture(canvas);
-	texture.colorSpace = T.SRGBColorSpace;
-	return texture;
+	return flatTex(canvas);
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 const T = THREE;
+	const P = Math.PI;
 import { createMover } from './mover.js';
 import { buildSoldier,animateSoldier } from './soldier.js';
 import { engageMove,faceYaw,moveToward,pickVisible } from './combat.js';
@@ -29,7 +30,7 @@ export function createBots(scene,world,random) {
 	const hitMeshes = [];
 	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
-	for (let i = 0; i < world.spawns.rust.length; i += 1) {
+	for (let i = 0; i < world.spawns.rust.length; i++) {
 		const spawn = world.spawns.rust[i];
 		const built = buildSoldier({ uniform: PALETTE.foe,accent: PALETTE.foe });
 		const { group,torso,head } = built;
@@ -45,7 +46,7 @@ export function createBots(scene,world,random) {
 			mover,
 			health: HEALTH,
 			alive: true,
-			yaw: Math.PI,
+			yaw: P,
 			state: 'hold',
 			goalSite: i % 2 === 0 ? 'A' : 'B',
 			route: [],
@@ -65,7 +66,7 @@ export function createBots(scene,world,random) {
 			blindUntil: 0,
 			util: null,
 			utilUsed: false,
-			scanPhase: random() * Math.PI * 2,
+			scanPhase: random() * P * 2,
 			fall: 0,
 			flinch: 0,
 			deadTime: 0,
@@ -194,7 +195,7 @@ export function createBots(scene,world,random) {
 				const wp = world.waypoints[target];
 				const arrived = moveToward(bot,wp.pos,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
 				if (arrived) {
-					bot.routeIndex += 1;
+					bot.routeIndex++;
 					if (bot.routeIndex >= bot.route.length) {
 						if (ctx.spikePlanted && bot.goalSite === ctx.spikeSite) {
 							bot.state = 'defuse';
@@ -280,17 +281,17 @@ export function createBots(scene,world,random) {
 		}
 	}
 	function reset() {
-		for (let i = 0; i < items.length; i += 1) {
+		for (let i = 0; i < items.length; i++) {
 			const bot = items[i];
 			const spawn = world.spawns.rust[i];
 			bot.mover.position.set(spawn.x,0,spawn.z);
 			bot.mover.velocity.set(0,0,0);
 			bot.group.position.copy(spawn);
-			bot.group.rotation.set(0,Math.PI,0);
+			bot.group.rotation.set(0,P,0);
 			bot.group.position.y = 0;
 			bot.health = HEALTH;
 			bot.alive = true;
-			bot.yaw = Math.PI;
+			bot.yaw = P;
 			bot.fall = 0;
 			bot.flinch = 0;
 			bot.deadTime = 0;

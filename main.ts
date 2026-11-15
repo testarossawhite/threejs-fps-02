@@ -9,7 +9,12 @@
 // grenades, bots that throw utility, first-person arms and gloved hands on
 // textured guns with staged reloads, and rounded humanoid soldiers — capsule
 // limbs, a lathe-turned torso and a sphere head under a curved helmet — that
-// walk, flinch and fall. The game is this
+// walk, flinch and fall. v6 finishes the soldiers' heads (glossy goggles over
+// the visor, a balaclava, a headset with ear cups, a helmet strap and rear
+// pouch), weathers the container, crate and gun-metal textures with streaks,
+// stencils and panel seams, gives the walk a forward lean and a lateral sway,
+// and restores the yard's last details: rain puddles with a wet sheen, steel
+// rims on the barrels, gantry cross-braces and a sagging lamp cable. The game is this
 // directory's
 // game/ folder, plain static files the browser loads as ES modules with
 // three.js 0.187.0 from an import map, and this program hands it in: it copies
@@ -53,4 +58,4 @@ cpSync(shotsDir, join(out, 'screenshots'), { recursive: true });
 const dossier = buildDossier(out, { text_max_bytes: 163840, screenshots: { max: 4, max_bytes: 262144 }, game_max_files: 993, game_max_bytes: 50331648 });
 writeFileSync(join(out, 'dossier.json'), dossier);
 const shotBytes = shotNames.map((name) => `${name} ${statSync(join(shotsDir, name)).size}B`).join(', ');
-console.log(`dustworks-yard v5: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);
+console.log(`dustworks-yard v6: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);

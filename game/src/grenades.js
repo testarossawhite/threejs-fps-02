@@ -18,12 +18,12 @@ export function createGrenades(scene,world) {
 	});
 	const flashMaterial = new T.MeshBasicMaterial({ color: new T.Color(PALETTE.accent),transparent: true,opacity: 0.9 });
 	const items = [];
-	for (let i = 0; i < POOL; i += 1) {
+	for (let i = 0; i < POOL; i++) {
 		const mesh = new T.Mesh(new T.SphereGeometry(0.09,10,8),fragMaterial);
 		mesh.visible = false;
 		scene.add(mesh);
 		const cloud = new T.Group();
-		for (let j = 0; j < 6; j += 1) {
+		for (let j = 0; j < 6; j++) {
 			const puff = new T.Mesh(new T.SphereGeometry(1,10,8),smokeMaterial);
 			puff.position.set((j % 3 - 1) * 1.1,0.4 + (j % 2) * 0.9,Math.floor(j / 3) * 1.2 - 0.6);
 			cloud.add(puff);

@@ -89,7 +89,7 @@ function frame(now) {
 		while (accumulator >= FIXED_STEP && steps < 5) {
 			game.step(FIXED_STEP);
 			accumulator -= FIXED_STEP;
-			steps += 1;
+			steps++;
 		}
 		if (accumulator > FIXED_STEP * 5) accumulator = 0;
 		game.frame(dt);
@@ -109,7 +109,7 @@ function paintTwiceThenReady() {
 		requestAnimationFrame(paint);
 		game.syncCamera(camera);
 		renderer.render(scene,camera);
-		painted += 1;
+		painted++;
 		if (painted === 2) {
 			window.__shotReady = true;
 			frozen = true;

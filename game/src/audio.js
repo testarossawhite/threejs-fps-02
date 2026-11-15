@@ -9,7 +9,7 @@ export function createAudio() {
 			ctx = new AudioContext();
 			noiseBuffer = ctx.createBuffer(1,ctx.sampleRate * 0.3,ctx.sampleRate);
 			const data = noiseBuffer.getChannelData(0);
-			for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+			for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
 		} catch {
 			ctx = null;
 		}

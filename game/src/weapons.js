@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 const T = THREE;
+	const P = Math.PI;
+const V3 = T.Vector3;
+const MS = T.Mesh;
 import { PALETTE } from './palette.js';
 import { gunMetalTexture,polymerTexture,camoTexture } from './textures.js';
 export const WEAPONS = {
@@ -52,16 +55,16 @@ function rigMats(accent) {
 }
 function buildGlove(m) {
 	const hand = new T.Group();
-	const palm = new T.Mesh(new T.SphereGeometry(0.05,10,8),m.glove);
+	const palm = new MS(new T.SphereGeometry(0.05,10,8),m.glove);
 	palm.scale.set(0.75,0.36,0.95);
 	hand.add(palm);
-	for (let i = 0; i < 4; i += 1) {
-		const finger = new T.Mesh(new T.BoxGeometry(0.016,0.055,0.02),m.glove);
+	for (let i = 0; i < 4; i++) {
+		const finger = new MS(new T.BoxGeometry(0.016,0.055,0.02),m.glove);
 		finger.position.set(-0.027 + i * 0.018,-0.038,-0.028);
 		finger.rotation.x = 0.5;
 		hand.add(finger);
 	}
-	const thumb = new T.Mesh(new T.BoxGeometry(0.018,0.045,0.02),m.glove);
+	const thumb = new MS(new T.BoxGeometry(0.018,0.045,0.02),m.glove);
 	thumb.position.set(0.045,-0.012,0.012);
 	thumb.rotation.z = -0.5;
 	hand.add(thumb);
@@ -69,10 +72,10 @@ function buildGlove(m) {
 }
 function buildArm(m,yawSign) {
 	const arm = new T.Group();
-	const fore = new T.Mesh(new T.CapsuleGeometry(0.05,0.3,4,10),m.sleeve);
+	const fore = new MS(new T.CapsuleGeometry(0.05,0.3,4,10),m.sleeve);
 	fore.position.set(0.03 * yawSign,-0.045,0.21);
 	fore.rotation.set(1.15,0.38 * yawSign,0);
-	const cuff = new T.Mesh(new T.CylinderGeometry(0.06,0.066,0.1,10),m.polymer);
+	const cuff = new MS(new T.CylinderGeometry(0.06,0.066,0.1,10),m.polymer);
 	cuff.position.set(0.008 * yawSign,-0.012,0.075);
 	cuff.rotation.set(1.15,0.38 * yawSign,0);
 	arm.add(fore,cuff,buildGlove(m));
@@ -81,29 +84,29 @@ function buildArm(m,yawSign) {
 function buildVM(def,m) {
 	const model = new T.Group();
 	const part = (parent,w,h,d,material,x,y,z,rotX = 0,rotY = 0,rotZ = 0) => {
-		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),material);
+		const mesh = new MS(new T.BoxGeometry(w,h,d),material);
 		mesh.position.set(x,y,z);
 		mesh.rotation.set(rotX,rotY,rotZ);
 		parent.add(mesh);
 		return mesh;
 	};
 	const tube = (parent,r,len,material,x,y,z,seg = 12) => {
-		const mesh = new T.Mesh(new T.CylinderGeometry(r,r,len,seg),material);
-		mesh.rotation.x = Math.PI / 2;
+		const mesh = new MS(new T.CylinderGeometry(r,r,len,seg),material);
+		mesh.rotation.x = P / 2;
 		mesh.position.set(x,y,z);
 		parent.add(mesh);
 		return mesh;
 	};
 	const tube2 = (parent,rRear,rFront,len,material,x,y,z) => {
-		const mesh = new T.Mesh(new T.CylinderGeometry(rRear,rFront,len,12),material);
-		mesh.rotation.x = Math.PI / 2;
+		const mesh = new MS(new T.CylinderGeometry(rRear,rFront,len,12),material);
+		mesh.rotation.x = P / 2;
 		mesh.position.set(x,y,z);
 		parent.add(mesh);
 		return mesh;
 	};
 	const rail = (parent,z,len,y) => {
 		part(parent,0.024,0.013,len,m.metal,0,y,z);
-		for (let i = 0; i < Math.floor(len / 0.045); i += 1) part(parent,0.03,0.009,0.018,m.metal,0,y + 0.009,z - len / 2 + 0.028 + i * 0.045);
+		for (let i = 0; i < Math.floor(len / 0.045); i++) part(parent,0.03,0.009,0.018,m.metal,0,y + 0.009,z - len / 2 + 0.028 + i * 0.045);
 	};
 	const dotSight = (parent,y,z) => {
 		tube(parent,0.021,0.05,m.metal,0,y,z);
@@ -114,7 +117,7 @@ function buildVM(def,m) {
 		const mag = new T.Group();
 		mag.position.set(x,y,z);
 		parent.add(mag);
-		for (let i = 0; i < 3; i += 1) part(mag,w,len,d,mat,0,-len * (0.5 + i),-0.016 * i * i,tilt + i * 0.17);
+		for (let i = 0; i < 3; i++) part(mag,w,len,d,mat,0,-len * (0.5 + i),-0.016 * i * i,tilt + i * 0.17);
 		part(mag,w + 0.012,0.018,d + 0.01,m.glove,0,-len * 3.02,-0.05,tilt + 0.42);
 		return mag;
 	};
@@ -132,8 +135,8 @@ function buildVM(def,m) {
 		part(slide,0.056,0.048,0.25,m.metal,0,0.052,-0.045);
 		part(slide,0.038,0.014,0.24,m.metal,0,0.082,-0.045);
 		part(slide,0.058,0.01,0.17,m.trim,0,0.029,-0.05);
-		for (let i = 0; i < 3; i += 1) part(slide,0.06,0.034,0.008,m.polymer,0,0.052,0.048 + i * 0.017);
-		for (let i = 0; i < 2; i += 1) part(slide,0.06,0.034,0.008,m.polymer,0,0.052,-0.128 - i * 0.017);
+		for (let i = 0; i < 3; i++) part(slide,0.06,0.034,0.008,m.polymer,0,0.052,0.048 + i * 0.017);
+		for (let i = 0; i < 2; i++) part(slide,0.06,0.034,0.008,m.polymer,0,0.052,-0.128 - i * 0.017);
 		part(slide,0.034,0.02,0.012,m.steel,0,0.09,0.062);
 		part(slide,0.007,0.026,0.007,m.steel,0,0.092,-0.152);
 		tube(slide,0.019,0.09,m.steel,0,0.05,-0.19);
@@ -147,8 +150,8 @@ function buildVM(def,m) {
 		mag = part(model,0.04,0.115,0.054,m.metal,0,-0.2,0.068,0.26);
 		part(mag,0.05,0.016,0.064,m.polymer,0,-0.062,0.002);
 		magTravel = 0.1;
-		gripL = new T.Vector3(-0.012,-0.125,0.062);
-		wellL = new T.Vector3(-0.01,-0.21,0.07);
+		gripL = new V3(-0.012,-0.125,0.062);
+		wellL = new V3(-0.01,-0.21,0.07);
 		muzzleZ = -0.26;
 	} else if (def.short === 'Dusk-9') {
 		tube(model,0.048,0.36,m.metal,0,0.01,-0.08);
@@ -166,8 +169,8 @@ function buildVM(def,m) {
 		for (const sx of [-1,1]) tube(model,0.011,0.15,m.steel,0.02 * sx,-0.005,0.18);
 		part(model,0.06,0.07,0.045,m.metal,0,0.005,0.115);
 		part(model,0.075,0.11,0.024,m.polymer,0,-0.005,0.265,0.08);
-		gripL = new T.Vector3(0,-0.1,-0.33);
-		wellL = new T.Vector3(-0.01,-0.17,-0.05);
+		gripL = new V3(0,-0.1,-0.33);
+		wellL = new V3(-0.01,-0.17,-0.05);
 		muzzleZ = -0.6;
 	} else if (def.short === 'KR-9') {
 		part(model,0.075,0.11,0.3,m.polymer,0,0,0.16);
@@ -178,7 +181,7 @@ function buildVM(def,m) {
 		rail(model,-0.04,0.24,0.058);
 		dotSight(model,0.098,-0.1);
 		part(model,0.072,0.08,0.18,m.polymer,0,-0.005,-0.28);
-		for (let i = 0; i < 3; i += 1) part(model,0.076,0.018,0.02,m.glove,0,0.012,-0.22 - i * 0.05);
+		for (let i = 0; i < 3; i++) part(model,0.076,0.018,0.02,m.glove,0,0.012,-0.22 - i * 0.05);
 		tube(model,0.014,0.07,m.steel,0,0.015,-0.385);
 		tube2(model,0.036,0.032,0.2,m.metal,0,0.015,-0.49);
 		tube(model,0.027,0.016,m.glove,0,0.015,-0.595);
@@ -187,8 +190,8 @@ function buildVM(def,m) {
 		mag = curveMag(model,m.camo,0.046,0.065,0.06,0,-0.055,0.15,0.04);
 		bolt = part(model,0.014,0.02,0.05,m.steel,0.045,0.032,-0.04);
 		part(model,0.04,0.085,0.042,m.polymer,0,-0.08,-0.29,0.18);
-		gripL = new T.Vector3(0,-0.095,-0.29);
-		wellL = new T.Vector3(-0.01,-0.16,0.15);
+		gripL = new V3(0,-0.095,-0.29);
+		wellL = new V3(-0.01,-0.16,0.15);
 		muzzleZ = -0.62;
 	} else if (def.short === 'BR-12') {
 		part(model,0.072,0.085,0.3,m.metal,0,0.01,0.03);
@@ -202,15 +205,15 @@ function buildVM(def,m) {
 		bolt.position.set(0,-0.028,-0.3);
 		model.add(bolt);
 		tube(bolt,0.033,0.15,m.polymer,0,0,0);
-		for (let i = 0; i < 4; i += 1) tube(bolt,0.0365,0.012,m.polymer,0,0,-0.056 + i * 0.037);
+		for (let i = 0; i < 4; i++) tube(bolt,0.0365,0.012,m.polymer,0,0,-0.056 + i * 0.037);
 		for (const sz of [-0.03,0.035]) tube(model,0.011,0.055,m.trim,-0.046,0.005,sz);
 		part(model,0.048,0.12,0.055,m.polymer,0,-0.105,0.13,0.4);
 		part(model,0.06,0.1,0.22,m.polymer,0,-0.008,0.3,0.05);
 		part(model,0.062,0.115,0.02,m.glove,0,-0.014,0.412,0.05);
 		mag = part(model,0.04,0.03,0.09,m.glove,0,-0.055,-0.02);
 		magTravel = 0.05;
-		gripL = new T.Vector3(0,-0.05,-0.3);
-		wellL = new T.Vector3(-0.01,-0.12,-0.02);
+		gripL = new V3(0,-0.05,-0.3);
+		wellL = new V3(-0.01,-0.12,-0.02);
 		muzzleZ = -0.59;
 	} else {
 		part(model,0.07,0.075,0.24,m.metal,0,-0.01,0.02);
@@ -222,7 +225,7 @@ function buildVM(def,m) {
 		mag = curveMag(model,m.camo,0.046,0.07,0.056,0,-0.06,-0.03,0.05);
 		part(model,0.047,0.125,0.055,m.polymer,0,-0.115,0.09,0.42);
 		tube(model,0.032,0.3,m.polymer,0,0.02,-0.35,8);
-		for (let i = 0; i < 4; i += 1) part(model,0.02,0.012,0.042,m.metal,0,0.062,-0.24 - i * 0.07);
+		for (let i = 0; i < 4; i++) part(model,0.02,0.012,0.042,m.metal,0,0.062,-0.24 - i * 0.07);
 		part(model,0.034,0.095,0.042,m.polymer,0,-0.048,-0.38,0.32);
 		part(model,0.03,0.048,0.032,m.metal,0,0.038,-0.5);
 		part(model,0.007,0.046,0.007,m.steel,0,0.078,-0.5);
@@ -239,8 +242,8 @@ function buildVM(def,m) {
 		part(model,0.055,0.1,0.2,m.polymer,0,0.002,0.31,0.05);
 		part(model,0.05,0.032,0.13,m.polymer,0,0.062,0.29);
 		part(model,0.058,0.115,0.02,m.glove,0,-0.004,0.415,0.05);
-		gripL = new T.Vector3(0,-0.065,-0.38);
-		wellL = new T.Vector3(-0.01,-0.17,-0.03);
+		gripL = new V3(0,-0.065,-0.38);
+		wellL = new V3(-0.01,-0.17,-0.03);
 		muzzleZ = -0.77;
 	}
 	const handR = buildArm(m,1);
@@ -259,7 +262,7 @@ function buildVM(def,m) {
 export function createWeapons(camera) {
 	const materials = rigMats(PALETTE.accent);
 	const built = {};
-	const flash = new T.Mesh(
+	const flash = new MS(
 		new T.PlaneGeometry(0.15,0.15),
 		new T.MeshBasicMaterial({ color: new T.Color(PALETTE.accent),transparent: true,opacity: 0.85,depthWrite: false,side: T.DoubleSide }),
 	);
@@ -354,7 +357,7 @@ export function createWeapons(camera) {
 		if (state.reloadLeft > 0) {
 			state.reloadLeft = Math.max(0,state.reloadLeft - dt);
 			const p = 1 - state.reloadLeft / def().reload;
-			dip = -0.55 * Math.pow(Math.sin(Math.PI * Math.min(1,p * 1.08)),1.2);
+			dip = -0.55 * Math.pow(Math.sin(P * Math.min(1,p * 1.08)),1.2);
 			magOut = ss(0.12,0.3,p) * (1 - ss(0.55,0.78,p));
 			rack = ss(0.8,0.87,p) * (1 - ss(0.9,0.99,p));
 			if (state.reloadLeft === 0) {
@@ -365,7 +368,7 @@ export function createWeapons(camera) {
 			}
 		}
 		r.mag.position.y = r.magBaseY - r.magTravel * magOut;
-		const pumpCurve = def().pump && state.pumpT > 0 ? Math.sin((1 - state.pumpT / 0.38) * Math.PI) * 0.11 : 0;
+		const pumpCurve = def().pump && state.pumpT > 0 ? Math.sin((1 - state.pumpT / 0.38) * P) * 0.11 : 0;
 		r.bolt.position.z = r.boltBaseZ + rack * 0.04 + state.kick * 0.3 + pumpCurve;
 		r.handL.position.lerpVectors(r.gripL,r.wellL,magOut);
 		if (def().pump) r.handL.position.z += pumpCurve * (1 - magOut);
@@ -373,11 +376,11 @@ export function createWeapons(camera) {
 		let rotX = state.kick * 2.2 + dip;
 		if (state.inspectT > 0) {
 			const p = 1 - state.inspectT / 1.15;
-			const arc = Math.sin(p * Math.PI);
+			const arc = Math.sin(p * P);
 			rotY += arc * 0.85;
 			rotX += arc * 0.3;
 		}
-		model.rotation.set(rotX,rotY,swayX * 0.4);
+		model.rotation.set(rotX,rotY,swayX * 0.4 + Math.sin(bobPhase) * 0.006 * moveAmt * swayAmt);
 	}
 	select('pistol');
 	return {
@@ -402,7 +405,7 @@ export function createWeapons(camera) {
 		},
 		takeRound() {
 			if (state.mag <= 0) return false;
-			state.mag -= 1;
+			state.mag--;
 			return true;
 		},
 		reload() {

@@ -66,7 +66,7 @@ export function createGame(deps) {
 	const tracers = [];
 	const tracerGeometry = new T.BoxGeometry(0.008,0.008,1);
 	const tracerMaterial = new T.MeshBasicMaterial({ color: 0xffc46b,transparent: true,opacity: 0.55 });
-	for (let i = 0; i < TRACER_POOL; i += 1) {
+	for (let i = 0; i < TRACER_POOL; i++) {
 		const mesh = new T.Mesh(tracerGeometry,tracerMaterial.clone());
 		mesh.visible = false;
 		scene.add(mesh);
@@ -75,7 +75,7 @@ export function createGame(deps) {
 	let tracerIndex = 0;
 	const sparks = [];
 	const sparkTexture = glowTexture();
-	for (let i = 0; i < SPARK_POOL; i += 1) {
+	for (let i = 0; i < SPARK_POOL; i++) {
 		const material = new T.SpriteMaterial({
 			map: sparkTexture,color: new T.Color('#ffd9a0'),transparent: true,
 			opacity: 0,blending: T.AdditiveBlending,depthWrite: false,
@@ -128,7 +128,7 @@ export function createGame(deps) {
 		let botHit = false;
 		let killedAny = false;
 		scene.updateMatrixWorld(true);
-		for (let p = 0; p < pellets; p += 1) {
+		for (let p = 0; p < pellets; p++) {
 			camera.getWorldDirection(_dir);
 			_dir.x += (random() * 2 - 1) * effSpread;
 			_dir.y += (random() * 2 - 1) * effSpread;
@@ -146,10 +146,10 @@ export function createGame(deps) {
 				const died = bots.damage(hit.object,head ? def.headDamage : def.damage);
 				if (died) {
 					killedAny = true;
-					S.kills += 1;
+					S.kills++;
 					S.money += REWARDS.kill;
-					tally.you.k += 1;
-					tally.bots[bot.id].d += 1;
+					tally.you.k++;
+					tally.bots[bot.id].d++;
 					hud.kill('You',def.short,`Rust-${bot.id + 1}`,true);
 					hud.killfeed(`You eliminated Rust-${bot.id + 1}${head ? ' (headshot)' : ''}`,true);
 					audio.kill();
@@ -181,10 +181,10 @@ export function createGame(deps) {
 		if (body.health <= 0) {
 			body.health = 0;
 			body.alive = false;
-			S.deaths += 1;
+			S.deaths++;
 			if (killer) {
-				tally.bots[killer.id].k += 1;
-				tally.you.d += 1;
+				tally.bots[killer.id].k++;
+				tally.you.d++;
 				hud.kill(`Rust-${killer.id + 1}`,killer.gun.short,'You',false);
 			}
 			if (spike.state.status !== 'planted' && allies.aliveCount() === 0) {
@@ -195,7 +195,7 @@ export function createGame(deps) {
 		}
 	}
 	function onPlanted(pSite,byAlly) {
-		S.plants += 1;
+		S.plants++;
 		S.money += REWARDS.plant;
 		if (byAlly) hud.killfeed(`${byAlly.name}: Spike planted — holding Site ${pSite.name}`,true);
 		else hud.killfeed(`Spike planted at Site ${pSite.name}`,true);
@@ -204,9 +204,9 @@ export function createGame(deps) {
 	function dmgA(ally,amount,killer = null) {
 		const died = allies.damage(ally,amount);
 		if (!died) return;
-		tally.allies[ally.id].d += 1;
+		tally.allies[ally.id].d++;
 		if (killer && killer.mover) {
-			tally.bots[killer.id].k += 1;
+			tally.bots[killer.id].k++;
 			hud.kill(`Rust-${killer.id + 1}`,killer.gun.short,ally.name,false);
 		}
 		hud.killfeed(`${ally.name} is down`,false);
@@ -218,10 +218,10 @@ export function createGame(deps) {
 	function dmgB(bot,amount) {
 		const died = bots.damage(bot.torso,amount);
 		if (died) {
-			S.kills += 1;
+			S.kills++;
 			S.money += REWARDS.kill;
-			tally.you.k += 1;
-			tally.bots[bot.id].d += 1;
+			tally.you.k++;
+			tally.bots[bot.id].d++;
 			hud.kill('You','Spark-4',`Rust-${bot.id + 1}`,true);
 			hud.killfeed(`Frag eliminated Rust-${bot.id + 1}`,true);
 			audio.kill();
@@ -231,12 +231,12 @@ export function createGame(deps) {
 		eVw[0].alive = body.alive;
 		eVw[0].speed = player.groundSpeed();
 		eVw[0].crouching = body.crouching;
-		for (let i = 0; i < allies.items.length; i += 1) {
+		for (let i = 0; i < allies.items.length; i++) {
 			const ally = allies.items[i];
 			eVw[i + 1].alive = ally.alive;
 			eVw[i + 1].speed = Math.hypot(ally.mover.velocity.x,ally.mover.velocity.z);
 		}
-		for (let i = 0; i < bots.items.length; i += 1) rVw[i].alive = bots.items[i].alive;
+		for (let i = 0; i < bots.items.length; i++) rVw[i].alive = bots.items[i].alive;
 	}
 	function botContext() {
 		return {
@@ -293,8 +293,8 @@ export function createGame(deps) {
 					const died = bots.damage(hitMesh,damage);
 					if (died) {
 						const bot = hitMesh.userData.bot;
-						tally.allies[ally.id].k += 1;
-						tally.bots[bot.id].d += 1;
+						tally.allies[ally.id].k++;
+						tally.bots[bot.id].d++;
 						hud.kill(ally.name,ally.gunShort,`Rust-${bot.id + 1}`,true);
 						hud.killfeed(`${ally.name} eliminated Rust-${bot.id + 1}${headshot ? ' (headshot)' : ''}`,true);
 						audio.kill();
@@ -387,11 +387,11 @@ export function createGame(deps) {
 		S.roundHistory.push(won ? 'W' : 'L');
 		let earned = 0;
 		if (won) {
-			S.roundsWon += 1;
+			S.roundsWon++;
 			earned = REWARDS.roundWin + (spike.state.status === 'planted' || spike.state.status === 'exploded' ? REWARDS.plant : 0);
 			audio.roundWin();
 		} else {
-			S.roundsLost += 1;
+			S.roundsLost++;
 			earned = REWARDS.roundLoss;
 			audio.roundLose();
 		}
@@ -473,13 +473,13 @@ export function createGame(deps) {
 			S.loadout.primary = id;
 		} else if (id === 'frag') {
 			if (S.loadout.frags >= 2) return;
-			S.loadout.frags += 1;
+			S.loadout.frags++;
 		} else if (id === 'smoke') {
 			if (S.loadout.smokes >= 2) return;
-			S.loadout.smokes += 1;
+			S.loadout.smokes++;
 		} else if (id === 'flash') {
 			if (S.loadout.flashes >= 2) return;
-			S.loadout.flashes += 1;
+			S.loadout.flashes++;
 		} else if (id === 'armour') {
 			if (S.loadout.armour) return;
 			S.loadout.armour = true;
@@ -518,7 +518,7 @@ export function createGame(deps) {
 				if (S.roundsWon >= MATCH_TARGET || S.roundsLost >= MATCH_TARGET || S.round >= MAX_ROUNDS) {
 					endMatch();
 				} else {
-					S.round += 1;
+					S.round++;
 					startBuy();
 				}
 			}
@@ -632,9 +632,9 @@ export function createGame(deps) {
 					camera.getWorldDirection(_dir);
 					const from = camera.position.clone().addScaledVector(_dir,0.6);
 					grenades.throwGrenade(kind,from,_dir);
-					if (kind === 'frag') weapons.state.frags -= 1;
-					else if (kind === 'smoke') weapons.state.smokes -= 1;
-					else weapons.state.flashes -= 1;
+					if (kind === 'frag') weapons.state.frags--;
+					else if (kind === 'smoke') weapons.state.smokes--;
+					else weapons.state.flashes--;
 					gCd = 0.5;
 					syncAmmo();
 				}
@@ -665,12 +665,12 @@ export function createGame(deps) {
 		mapData.pz = body.position.z;
 		mapData.yaw = body.yaw;
 		mapData.spike = spike.state.status === 'planted' ? spike.state.pos : null;
-		for (let i = 0; i < allies.items.length; i += 1) {
+		for (let i = 0; i < allies.items.length; i++) {
 			mapData.allies[i].x = allies.items[i].mover.position.x;
 			mapData.allies[i].z = allies.items[i].mover.position.z;
 			mapData.allies[i].alive = allies.items[i].alive;
 		}
-		for (let i = 0; i < bots.items.length; i += 1) {
+		for (let i = 0; i < bots.items.length; i++) {
 			const bot = bots.items[i];
 			mapData.foes[i].x = bot.mover.position.x;
 			mapData.foes[i].z = bot.mover.position.z;
@@ -726,7 +726,7 @@ export function createGame(deps) {
 		body.pitch = Math.asin(Math.max(-1,Math.min(1,dy / len)));
 	}
 	function settle(steps) {
-		for (let i = 0; i < steps; i += 1) step(1 / 60);
+		for (let i = 0; i < steps; i++) step(1 / 60);
 	}
 	function liveShot() {
 		startMatch();

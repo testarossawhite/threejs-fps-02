@@ -1,4 +1,6 @@
 import { PRICES } from './state.js';
+	const P = Math.PI;
+	const CE = (tag) => document.createElement(tag);
 const BUY_ITEMS = [
 	{ key: '1',id: 'rifle',name: 'VK-7 Carbine',desc: 'Auto rifle · 30 rounds · headshot kills',price: PRICES.rifle },
 	{ key: '2',id: 'smg',name: 'Dusk-9 SMG',desc: 'Fast close-quarters spray · 32 rounds',price: PRICES.smg },
@@ -99,7 +101,7 @@ export function createHud() {
 			damageTimer = setTimeout(() => damageVignette.classList.remove('on'),220);
 		},
 		killfeed(text,good) {
-			const entry = document.createElement('div');
+			const entry = CE('div');
 			entry.className = good ? 'feed-good' : 'feed-bad';
 			entry.textContent = text;
 			killfeed.prepend(entry);
@@ -107,14 +109,14 @@ export function createHud() {
 			setTimeout(() => entry.remove(),5000);
 		},
 		kill(killer,weapon,victim,good) {
-			const entry = document.createElement('div');
-			const kb = document.createElement('b');
+			const entry = CE('div');
+			const kb = CE('b');
 			kb.className = good ? 'ally' : 'foe';
 			kb.textContent = killer;
-			const wp = document.createElement('span');
+			const wp = CE('span');
 			wp.className = 'wpn';
 			wp.textContent = ` [${weapon}] `;
-			const vb = document.createElement('b');
+			const vb = CE('b');
 			vb.className = good ? 'foe' : 'ally';
 			vb.textContent = victim;
 			entry.append(kb,wp,vb);
@@ -141,7 +143,7 @@ export function createHud() {
 			c.clearRect(0,0,168,168);
 			c.save();
 			c.beginPath();
-			c.arc(84,84,82,0,Math.PI * 2);
+			c.arc(84,84,82,0,P * 2);
 			c.clip();
 			c.fillStyle = '#232820';
 			c.fillRect(0,0,168,168);
@@ -155,34 +157,34 @@ export function createHud() {
 			for (const [label,sx,sz,col] of [['A',-12,-12,'rgba(240,166,62,0.4)'],['B',12,-11,'rgba(47,174,157,0.4)']]) {
 				c.fillStyle = col;
 				c.beginPath();
-				c.arc(mx(sx),my(sz),14,0,Math.PI * 2);
+				c.arc(mx(sx),my(sz),14,0,P * 2);
 				c.fill();
 				c.fillStyle = '#f4ead2';
 				c.fillText(label,mx(sx),my(sz) + 4);
 			}
 			c.fillStyle = '#5c6355';
 			c.beginPath();
-			c.arc(mx(0),my(-2),7.5,0,Math.PI * 2);
+			c.arc(mx(0),my(-2),7.5,0,P * 2);
 			c.fill();
 			if (d.spike) {
 				c.fillStyle = '#ffffff';
 				c.save();
 				c.translate(mx(d.spike.x),my(d.spike.z));
-				c.rotate(Math.PI / 4);
+				c.rotate(P / 4);
 				c.fillRect(-3.4,-3.4,6.8,6.8);
 				c.restore();
 			}
 			const dot = (x,z,r,color) => {
 				c.fillStyle = color;
 				c.beginPath();
-				c.arc(mx(x),my(z),r,0,Math.PI * 2);
+				c.arc(mx(x),my(z),r,0,P * 2);
 				c.fill();
 			};
 			for (const a of d.allies) if (a.alive) dot(a.x,a.z,3,'#f0a63e');
 			for (const f of d.foes) if (f.seen) dot(f.x,f.z,3.4,'#e5482e');
 			c.fillStyle = '#ffffff';
 			c.beginPath();
-			c.arc(mx(d.px),my(d.pz),3.6,0,Math.PI * 2);
+			c.arc(mx(d.px),my(d.pz),3.6,0,P * 2);
 			c.fill();
 			c.strokeStyle = '#ffffff';
 			c.lineWidth = 2;
@@ -225,7 +227,7 @@ export function createHud() {
 						|| (item.id === 'armour' && data.loadout.armour)
 						|| (item.id === 'helmet' && data.loadout.helmet)
 					);
-					const button = document.createElement('button');
+					const button = CE('button');
 					button.type = 'button';
 					button.className = 'buy-item';
 					button.dataset.buy = item.id;

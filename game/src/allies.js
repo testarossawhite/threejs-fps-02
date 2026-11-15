@@ -25,7 +25,7 @@ export function createAllies(scene,world,random) {
 	const hitMeshes = [];
 	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
-	for (let i = 0; i < world.spawns.emberTeam.length; i += 1) {
+	for (let i = 0; i < world.spawns.emberTeam.length; i++) {
 		const spawn = world.spawns.emberTeam[i];
 		const built = buildSoldier({ uniform: '#8f7434',accent: PALETTE.accent });
 		const { group,torso,head } = built;
@@ -164,7 +164,7 @@ export function createAllies(scene,world,random) {
 				}
 				const wp = world.waypoints[target];
 				const arrived = moveToward(ally,wp.pos,dt,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION);
-				if (arrived) ally.routeIndex += 1;
+				if (arrived) ally.routeIndex++;
 				continue;
 			}
 			ally.yaw += Math.sin(ctx.time * 0.5 + ally.scanPhase) * dt * 0.9;
@@ -220,7 +220,7 @@ export function createAllies(scene,world,random) {
 		ctx.onAllyShot(ally,_muzzle,end,hitMesh,damageDone,headshot);
 	}
 	function reset(planSite) {
-		for (let i = 0; i < items.length; i += 1) {
+		for (let i = 0; i < items.length; i++) {
 			const ally = items[i];
 			const spawn = world.spawns.emberTeam[i];
 			ally.mover.position.set(spawn.x,0,spawn.z);

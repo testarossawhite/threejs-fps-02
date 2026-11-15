@@ -1,4 +1,3 @@
-// Palette: midday yard; amber=Ember/A, teal=B, red=Rust.
 export const PALETTE = {
 	canvas: '#2e2a24',
 	surface: '#6b5636',

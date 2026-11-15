@@ -7,8 +7,9 @@
 // history and an MVP banner, directional damage indicators, aim-down-sights,
 // five weapons plus armour and helmet in the buy menu, frag/smoke/flashbang
 // grenades, bots that throw utility, first-person arms and gloved hands on
-// textured guns with staged reloads, and articulated soldiers with helmets,
-// knee pads and team armbands that walk, flinch and fall. The game is this
+// textured guns with staged reloads, and rounded humanoid soldiers — capsule
+// limbs, a lathe-turned torso and a sphere head under a curved helmet — that
+// walk, flinch and fall. The game is this
 // directory's
 // game/ folder, plain static files the browser loads as ES modules with
 // three.js 0.187.0 from an import map, and this program hands it in: it copies
@@ -52,4 +53,4 @@ cpSync(shotsDir, join(out, 'screenshots'), { recursive: true });
 const dossier = buildDossier(out, { text_max_bytes: 163840, screenshots: { max: 4, max_bytes: 262144 }, game_max_files: 993, game_max_bytes: 50331648 });
 writeFileSync(join(out, 'dossier.json'), dossier);
 const shotBytes = shotNames.map((name) => `${name} ${statSync(join(shotsDir, name)).size}B`).join(', ');
-console.log(`dustworks-yard v4: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);
+console.log(`dustworks-yard v5: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);

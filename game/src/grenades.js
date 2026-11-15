@@ -1,41 +1,41 @@
-// Grenades: frag, smoke, flashbang physics + FX.
 import * as THREE from 'three';
+const T = THREE;
 import { PALETTE } from './palette.js';
 const FRAG_FUSE = 1.4;
 const FRAG_RADIUS = 5.5;
 const FRAG_DAMAGE = 90;
 const SMOKE_SECONDS = 12;
 const POOL = 6;
-const _toTarget = new THREE.Vector3();
-const _ab = new THREE.Vector3();
-const _ac = new THREE.Vector3();
-const _closest = new THREE.Vector3();
+const _toTarget = new T.Vector3();
+const _ab = new T.Vector3();
+const _ac = new T.Vector3();
+const _closest = new T.Vector3();
 export function createGrenades(scene,world) {
-	const fragMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.steel),roughness: 0.4,metalness: 0.6 });
-	const smokeMaterial = new THREE.MeshStandardMaterial({
-		color: new THREE.Color(PALETTE.muted),transparent: true,opacity: 0.5,
+	const fragMaterial = new T.MeshStandardMaterial({ color: new T.Color(PALETTE.steel),roughness: 0.4,metalness: 0.6 });
+	const smokeMaterial = new T.MeshStandardMaterial({
+		color: new T.Color(PALETTE.muted),transparent: true,opacity: 0.5,
 		roughness: 1,depthWrite: false,
 	});
-	const flashMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.accent),transparent: true,opacity: 0.9 });
+	const flashMaterial = new T.MeshBasicMaterial({ color: new T.Color(PALETTE.accent),transparent: true,opacity: 0.9 });
 	const items = [];
 	for (let i = 0; i < POOL; i += 1) {
-		const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.09,10,8),fragMaterial);
+		const mesh = new T.Mesh(new T.SphereGeometry(0.09,10,8),fragMaterial);
 		mesh.visible = false;
 		scene.add(mesh);
-		const cloud = new THREE.Group();
+		const cloud = new T.Group();
 		for (let j = 0; j < 6; j += 1) {
-			const puff = new THREE.Mesh(new THREE.SphereGeometry(1,10,8),smokeMaterial);
+			const puff = new T.Mesh(new T.SphereGeometry(1,10,8),smokeMaterial);
 			puff.position.set((j % 3 - 1) * 1.1,0.4 + (j % 2) * 0.9,Math.floor(j / 3) * 1.2 - 0.6);
 			cloud.add(puff);
 		}
 		cloud.visible = false;
 		scene.add(cloud);
-		const flash = new THREE.Mesh(new THREE.SphereGeometry(1,12,10),flashMaterial);
+		const flash = new T.Mesh(new T.SphereGeometry(1,12,10),flashMaterial);
 		flash.visible = false;
 		scene.add(flash);
 		items.push({
 			mesh,cloud,flash,active: false,kind: 'frag',fuse: 0,left: 0,
-			pos: new THREE.Vector3(),vel: new THREE.Vector3(),center: new THREE.Vector3(),
+			pos: new T.Vector3(),vel: new T.Vector3(),center: new T.Vector3(),
 		});
 	}
 	function freeSlot() {
@@ -77,8 +77,8 @@ export function createGrenades(scene,world) {
 			_toTarget.y = 0;
 			const dist = _toTarget.length();
 			if (dist > FRAG_RADIUS) continue;
-			const eye = new THREE.Vector3(item.pos.x,item.pos.y + 0.3,item.pos.z);
-			const chest = new THREE.Vector3(target.pos.x,target.pos.y + 1.1,target.pos.z);
+			const eye = new T.Vector3(item.pos.x,item.pos.y + 0.3,item.pos.z);
+			const chest = new T.Vector3(target.pos.x,target.pos.y + 1.1,target.pos.z);
 			if (world.blockedBetween(eye,chest)) continue;
 			target.hit(Math.round(FRAG_DAMAGE * (1 - dist / FRAG_RADIUS) + 10));
 		}

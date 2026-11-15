@@ -1,5 +1,5 @@
-// Ember AI squadmates: plan, push, plant, cover.
 import * as THREE from 'three';
+const T = THREE;
 import { createMover } from './mover.js';
 import { buildSoldier,animateSoldier } from './soldier.js';
 import { engageMove,moveToward,pickVisible } from './combat.js';
@@ -16,14 +16,14 @@ const ALLY_GUNS = ['VK-7','Dusk-9','KR-9','BR-12'];
 const HOLD_OFFSETS = [
 	[2.3,1.1],[-2.3,1.7],[1.5,-2.5],[-1.9,-2.3],
 ];
-const _dir = new THREE.Vector3();
-const _muzzle = new THREE.Vector3();
-const _aim = new THREE.Vector3();
-const _far = new THREE.Vector3();
+const _dir = new T.Vector3();
+const _muzzle = new T.Vector3();
+const _aim = new T.Vector3();
+const _far = new T.Vector3();
 export function createAllies(scene,world,random) {
 	const items = [];
 	const hitMeshes = [];
-	const raycaster = new THREE.Raycaster();
+	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
 	for (let i = 0; i < world.spawns.emberTeam.length; i += 1) {
 		const spawn = world.spawns.emberTeam[i];
@@ -49,9 +49,9 @@ export function createAllies(scene,world,random) {
 			planSite: 'A',
 			route: [],
 			routeIndex: 0,
-			holdPoint: new THREE.Vector3(),
+			holdPoint: new T.Vector3(),
 			target: null,
-			lastSeen: new THREE.Vector3(),
+			lastSeen: new T.Vector3(),
 			lastSeenAt: -99,
 			contacted: false,
 			reactionAt: 0,
@@ -257,7 +257,7 @@ export function createAllies(scene,world,random) {
 		},
 		aimPoint(index) {
 			const ally = items[index % items.length];
-			return new THREE.Vector3(ally.mover.position.x,1.25,ally.mover.position.z);
+			return new T.Vector3(ally.mover.position.x,1.25,ally.mover.position.z);
 		},
 	};
 }

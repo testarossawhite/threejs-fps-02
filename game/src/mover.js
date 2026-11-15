@@ -1,12 +1,12 @@
-// Shared axis-separated movement vs box colliders.
 import * as THREE from 'three';
+const T = THREE;
 const GRAVITY = 20;
 export function createMover(colliders, options) {
 	const radius = options.radius ?? 0.34;
 	const height = options.height ?? 1.72;
-	const position = new THREE.Vector3(options.x ?? 0, 0, options.z ?? 0);
-	const velocity = new THREE.Vector3();
-	const probe = new THREE.Box3();
+	const position = new T.Vector3(options.x ?? 0, 0, options.z ?? 0);
+	const velocity = new T.Vector3();
+	const probe = new T.Box3();
 	const mover = { position, velocity, onGround: true, height };
 	function overlaps(x, y, z, h, lift) {
 		probe.min.set(x - radius, y + lift, z - radius);

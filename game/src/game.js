@@ -1,5 +1,5 @@
-// Game wiring: state, fixed-step sim, phases, HUD.
 import * as THREE from 'three';
+const T = THREE;
 import {
 	PHASES,MATCH_TARGET,MAX_ROUNDS,ROUND_SECONDS,BUY_SECONDS,PLANT_SECONDS,
 	SPIKE_SECONDS,PRICES,REWARDS,createState,resetMatch,
@@ -10,16 +10,17 @@ const TRACER_POOL = 8;
 const TRACER_LIFE = 0.09;
 const SPARK_POOL = 12;
 const SPARK_LIFE = 0.16;
-const _dir = new THREE.Vector3();
-const _muzzle = new THREE.Vector3();
-const _noisePos = new THREE.Vector3();
-const _end = new THREE.Vector3();
-const _utilFrom = new THREE.Vector3();
-const _flashEye = new THREE.Vector3();
-const _prevPos = new THREE.Vector3();
+const _dir = new T.Vector3();
+const _muzzle = new T.Vector3();
+const _noisePos = new T.Vector3();
+const _end = new T.Vector3();
+const _utilFrom = new T.Vector3();
+const _flashEye = new T.Vector3();
+const _prevPos = new T.Vector3();
 export function createGame(deps) {
 	const { scene,camera,world,player,weapons,bots,allies,spike,grenades,audio,hud,input,random } = deps;
 	const state = createState();
+	const S = state;
 	const owned = { pistol: true,smg: false,smg2: false,shotgun: false,rifle: false };
 	let tally = null;
 	let blindV = 0;
@@ -42,7 +43,7 @@ export function createGame(deps) {
 		};
 	}
 	resetTally();
-	const raycaster = new THREE.Raycaster();
+	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
 	let planSite = 'A';
 	let rotated = false;
@@ -56,17 +57,17 @@ export function createGame(deps) {
 	const rVw = bots.items.map((bot) => ({ pos: bot.mover.position,alive: true,ref: bot }));
 	const rustRaycastTargets = [null,...allies.hitMeshes,...world.shootables];
 	const emberRaycastTargets = [...world.shootables,...bots.hitMeshes];
-	const playerHitbox = new THREE.Mesh(
-		new THREE.BoxGeometry(0.68,1.72,0.68),
-		new THREE.MeshBasicMaterial({ transparent: true,opacity: 0,depthWrite: false,colorWrite: false }),
+	const playerHitbox = new T.Mesh(
+		new T.BoxGeometry(0.68,1.72,0.68),
+		new T.MeshBasicMaterial({ transparent: true,opacity: 0,depthWrite: false,colorWrite: false }),
 	);
 	scene.add(playerHitbox);
 	rustRaycastTargets[0] = playerHitbox;
 	const tracers = [];
-	const tracerGeometry = new THREE.BoxGeometry(0.008,0.008,1);
-	const tracerMaterial = new THREE.MeshBasicMaterial({ color: 0xffc46b,transparent: true,opacity: 0.55 });
+	const tracerGeometry = new T.BoxGeometry(0.008,0.008,1);
+	const tracerMaterial = new T.MeshBasicMaterial({ color: 0xffc46b,transparent: true,opacity: 0.55 });
 	for (let i = 0; i < TRACER_POOL; i += 1) {
-		const mesh = new THREE.Mesh(tracerGeometry,tracerMaterial.clone());
+		const mesh = new T.Mesh(tracerGeometry,tracerMaterial.clone());
 		mesh.visible = false;
 		scene.add(mesh);
 		tracers.push({ mesh,life: 0 });
@@ -75,11 +76,11 @@ export function createGame(deps) {
 	const sparks = [];
 	const sparkTexture = glowTexture();
 	for (let i = 0; i < SPARK_POOL; i += 1) {
-		const material = new THREE.SpriteMaterial({
-			map: sparkTexture,color: new THREE.Color('#ffd9a0'),transparent: true,
-			opacity: 0,blending: THREE.AdditiveBlending,depthWrite: false,
+		const material = new T.SpriteMaterial({
+			map: sparkTexture,color: new T.Color('#ffd9a0'),transparent: true,
+			opacity: 0,blending: T.AdditiveBlending,depthWrite: false,
 		});
-		const mesh = new THREE.Sprite(material);
+		const mesh = new T.Sprite(material);
 		mesh.visible = false;
 		scene.add(mesh);
 		sparks.push({ mesh,life: 0 });
@@ -145,8 +146,8 @@ export function createGame(deps) {
 				const died = bots.damage(hit.object,head ? def.headDamage : def.damage);
 				if (died) {
 					killedAny = true;
-					state.kills += 1;
-					state.money += REWARDS.kill;
+					S.kills += 1;
+					S.money += REWARDS.kill;
 					tally.you.k += 1;
 					tally.bots[bot.id].d += 1;
 					hud.kill('You',def.short,`Rust-${bot.id + 1}`,true);
@@ -167,7 +168,7 @@ export function createGame(deps) {
 		syncAmmo();
 	}
 	function dmgP(amount,fromPos,headshot = false,killer = null) {
-		if (!body.alive || state.phase !== PHASES.LIVE) return;
+		if (!body.alive || S.phase !== PHASES.LIVE) return;
 		let final = headshot && body.helmet ? Math.round(amount * 0.45) : amount;
 		final = body.armour ? Math.round(final * 0.65) : final;
 		body.health -= final;
@@ -180,7 +181,7 @@ export function createGame(deps) {
 		if (body.health <= 0) {
 			body.health = 0;
 			body.alive = false;
-			state.deaths += 1;
+			S.deaths += 1;
 			if (killer) {
 				tally.bots[killer.id].k += 1;
 				tally.you.d += 1;
@@ -194,8 +195,8 @@ export function createGame(deps) {
 		}
 	}
 	function onPlanted(pSite,byAlly) {
-		state.plants += 1;
-		state.money += REWARDS.plant;
+		S.plants += 1;
+		S.money += REWARDS.plant;
 		if (byAlly) hud.killfeed(`${byAlly.name}: Spike planted — holding Site ${pSite.name}`,true);
 		else hud.killfeed(`Spike planted at Site ${pSite.name}`,true);
 		audio.plant();
@@ -217,8 +218,8 @@ export function createGame(deps) {
 	function dmgB(bot,amount) {
 		const died = bots.damage(bot.torso,amount);
 		if (died) {
-			state.kills += 1;
-			state.money += REWARDS.kill;
+			S.kills += 1;
+			S.money += REWARDS.kill;
 			tally.you.k += 1;
 			tally.bots[bot.id].d += 1;
 			hud.kill('You','Spark-4',`Rust-${bot.id + 1}`,true);
@@ -376,33 +377,33 @@ export function createGame(deps) {
 			...allies.items.map((a,i) => ({ name: a.name,team: 'ember',k: tally.allies[i].k,d: tally.allies[i].d,alive: a.alive })),
 			...bots.items.map((b,i) => ({ name: `Rust-${b.id + 1}`,team: 'rust',k: tally.bots[i].k,d: tally.bots[i].d,alive: b.alive })),
 		];
-		return { won: state.roundsWon,lost: state.roundsLost,history: state.roundHistory,rows };
+		return { won: S.roundsWon,lost: S.roundsLost,history: S.roundHistory,rows };
 	}
 	function endRound(won,reason) {
-		if (state.phase !== PHASES.LIVE) return;
-		state.phase = PHASES.ROUND_END;
-		state.phaseTime = 0;
-		state.roundReason = reason;
-		state.roundHistory.push(won ? 'W' : 'L');
+		if (S.phase !== PHASES.LIVE) return;
+		S.phase = PHASES.ROUND_END;
+		S.phaseTime = 0;
+		S.roundReason = reason;
+		S.roundHistory.push(won ? 'W' : 'L');
 		let earned = 0;
 		if (won) {
-			state.roundsWon += 1;
+			S.roundsWon += 1;
 			earned = REWARDS.roundWin + (spike.state.status === 'planted' || spike.state.status === 'exploded' ? REWARDS.plant : 0);
 			audio.roundWin();
 		} else {
-			state.roundsLost += 1;
+			S.roundsLost += 1;
 			earned = REWARDS.roundLoss;
 			audio.roundLose();
 		}
-		state.money += earned;
-		state.earned = earned;
+		S.money += earned;
+		S.earned = earned;
 		if (document.pointerLockElement) document.exitPointerLock();
-		hud.showOverlay('roundEnd',{ won,reason,wonRounds: state.roundsWon,lost: state.roundsLost,earned,mvp: mvpName() });
-		hud.setScore(state.roundsWon,state.roundsLost,state.round);
+		hud.showOverlay('roundEnd',{ won,reason,wonRounds: S.roundsWon,lost: S.roundsLost,earned,mvp: mvpName() });
+		hud.setScore(S.roundsWon,S.roundsLost,S.round);
 	}
 	function startBuy() {
-		state.phase = PHASES.BUY;
-		state.phaseTime = 0;
+		S.phase = PHASES.BUY;
+		S.phaseTime = 0;
 		planSite = random() < 0.5 ? 'A' : 'B';
 		rotated = false;
 		planter = null;
@@ -411,45 +412,45 @@ export function createGame(deps) {
 		allies.reset(planSite);
 		spike.reset();
 		grenades.reset();
-		weapons.equip(state.loadout);
-		body.armour = state.loadout.armour;
-		state.loadout.armour = false;
-		body.helmet = state.loadout.helmet;
-		state.loadout.helmet = false;
+		weapons.equip(S.loadout);
+		body.armour = S.loadout.armour;
+		S.loadout.armour = false;
+		body.helmet = S.loadout.helmet;
+		S.loadout.helmet = false;
 		_prevPos.copy(body.position);
 		stepAcc = 0;
 		hud.setHealth(body.health,body.maxHealth);
 		syncAmmo();
-		hud.setMoney(state.money);
+		hud.setMoney(S.money);
 		hud.setSpike('carried','',0);
 		hud.setPlant(0,'');
-		hud.setScore(state.roundsWon,state.roundsLost,state.round);
-		hud.showOverlay('buy',{ round: state.round,money: state.money,loadout: state.loadout });
+		hud.setScore(S.roundsWon,S.roundsLost,S.round);
+		hud.showOverlay('buy',{ round: S.round,money: S.money,loadout: S.loadout });
 	}
 	function startRound() {
-		if (state.roundsWon >= MATCH_TARGET || state.roundsLost >= MATCH_TARGET || state.round > MAX_ROUNDS) {
+		if (S.roundsWon >= MATCH_TARGET || S.roundsLost >= MATCH_TARGET || S.round > MAX_ROUNDS) {
 			endMatch();
 			return;
 		}
-		state.phase = PHASES.LIVE;
-		state.phaseTime = 0;
-		state.roundTimer = ROUND_SECONDS;
+		S.phase = PHASES.LIVE;
+		S.phaseTime = 0;
+		S.roundTimer = ROUND_SECONDS;
 		spike.reset();
 		hud.killfeed(`Ember-1: All units — hit Site ${planSite}`,true);
 		hud.hideOverlay();
-		hud.setTimer(state.roundTimer,false);
+		hud.setTimer(S.roundTimer,false);
 		hud.setSpike('carried','',0);
-		hud.setScore(state.roundsWon,state.roundsLost,state.round);
+		hud.setScore(S.roundsWon,S.roundsLost,S.round);
 		input.requestLock();
 		audio.resume();
 	}
 	function endMatch() {
-		state.phase = PHASES.MATCH_END;
-		state.phaseTime = 0;
-		const won = state.roundsWon > state.roundsLost;
-		state.matchWinner = won ? 'Ember' : 'Rust';
+		S.phase = PHASES.MATCH_END;
+		S.phaseTime = 0;
+		const won = S.roundsWon > S.roundsLost;
+		S.matchWinner = won ? 'Ember' : 'Rust';
 		if (document.pointerLockElement) document.exitPointerLock();
-		hud.showOverlay('matchEnd',{ won,wonRounds: state.roundsWon,lost: state.roundsLost,kills: state.kills,plants: state.plants });
+		hud.showOverlay('matchEnd',{ won,wonRounds: S.roundsWon,lost: S.roundsLost,kills: S.kills,plants: S.plants });
 	}
 	function startMatch() {
 		resetMatch(state);
@@ -459,49 +460,49 @@ export function createGame(deps) {
 		owned.smg2 = false;
 		owned.shotgun = false;
 		owned.rifle = false;
-		state.round = 1;
+		S.round = 1;
 		startBuy();
 	}
 	function buyItem(id) {
-		if (state.phase !== PHASES.BUY) return;
+		if (S.phase !== PHASES.BUY) return;
 		const price = PRICES[id];
-		if (price === undefined || state.money < price) return;
+		if (price === undefined || S.money < price) return;
 		if (id === 'rifle' || id === 'smg' || id === 'smg2' || id === 'shotgun' || id === 'pistol') {
 			if (owned[id]) return;
 			owned[id] = true;
-			state.loadout.primary = id;
+			S.loadout.primary = id;
 		} else if (id === 'frag') {
-			if (state.loadout.frags >= 2) return;
-			state.loadout.frags += 1;
+			if (S.loadout.frags >= 2) return;
+			S.loadout.frags += 1;
 		} else if (id === 'smoke') {
-			if (state.loadout.smokes >= 2) return;
-			state.loadout.smokes += 1;
+			if (S.loadout.smokes >= 2) return;
+			S.loadout.smokes += 1;
 		} else if (id === 'flash') {
-			if (state.loadout.flashes >= 2) return;
-			state.loadout.flashes += 1;
+			if (S.loadout.flashes >= 2) return;
+			S.loadout.flashes += 1;
 		} else if (id === 'armour') {
-			if (state.loadout.armour) return;
-			state.loadout.armour = true;
+			if (S.loadout.armour) return;
+			S.loadout.armour = true;
 		} else if (id === 'helmet') {
-			if (state.loadout.helmet) return;
-			state.loadout.helmet = true;
+			if (S.loadout.helmet) return;
+			S.loadout.helmet = true;
 		}
-		state.money -= price;
+		S.money -= price;
 		audio.buy();
-		hud.setMoney(state.money);
-		hud.showOverlay('buy',{ round: state.round,money: state.money,loadout: state.loadout });
+		hud.setMoney(S.money);
+		hud.showOverlay('buy',{ round: S.round,money: S.money,loadout: S.loadout });
 	}
 	function onPlayButton() {
-		if (state.phase === PHASES.MENU) startMatch();
-		else if (state.phase === PHASES.BUY) startRound();
-		else if (state.phase === PHASES.ROUND_END) startBuy();
-		else if (state.phase === PHASES.MATCH_END) startMatch();
-		else if (state.phase === PHASES.LIVE) input.requestLock();
+		if (S.phase === PHASES.MENU) startMatch();
+		else if (S.phase === PHASES.BUY) startRound();
+		else if (S.phase === PHASES.ROUND_END) startBuy();
+		else if (S.phase === PHASES.MATCH_END) startMatch();
+		else if (S.phase === PHASES.LIVE) input.requestLock();
 	}
 	function step(dt) {
 		elapsed += dt;
 		const boardWanted = input.state.keys.has('Tab')
-			|| state.phase === PHASES.ROUND_END || state.phase === PHASES.MATCH_END;
+			|| S.phase === PHASES.ROUND_END || S.phase === PHASES.MATCH_END;
 		boardTimer += dt;
 		if (boardWanted && (!boardShown || boardTimer > 0.5)) {
 			hud.showScoreboard(boardData());
@@ -511,21 +512,21 @@ export function createGame(deps) {
 			hud.hideScoreboard();
 			boardShown = false;
 		}
-		if (state.phase === PHASES.ROUND_END) {
-			state.phaseTime += dt;
-			if (state.phaseTime >= ROUND_END_SECONDS) {
-				if (state.roundsWon >= MATCH_TARGET || state.roundsLost >= MATCH_TARGET || state.round >= MAX_ROUNDS) {
+		if (S.phase === PHASES.ROUND_END) {
+			S.phaseTime += dt;
+			if (S.phaseTime >= ROUND_END_SECONDS) {
+				if (S.roundsWon >= MATCH_TARGET || S.roundsLost >= MATCH_TARGET || S.round >= MAX_ROUNDS) {
 					endMatch();
 				} else {
-					state.round += 1;
+					S.round += 1;
 					startBuy();
 				}
 			}
 			return;
 		}
-		if (state.phase === PHASES.BUY) {
-			state.phaseTime += dt;
-			hud.setTimer(Math.max(0,BUY_SECONDS - state.phaseTime),false);
+		if (S.phase === PHASES.BUY) {
+			S.phaseTime += dt;
+			hud.setTimer(Math.max(0,BUY_SECONDS - S.phaseTime),false);
 			if (input.takePressed('Enter')) startRound();
 			else if (input.takePressed('KeyB')) startRound();
 			else if (input.takePressed('Digit1')) buyItem('rifle');
@@ -540,14 +541,14 @@ export function createGame(deps) {
 			else if (input.takePressed('Digit0')) buyItem('flash');
 			return;
 		}
-		if (state.phase !== PHASES.LIVE) return;
-		state.phaseTime += dt;
+		if (S.phase !== PHASES.LIVE) return;
+		S.phaseTime += dt;
 		gCd = Math.max(0,gCd - dt);
 		if (spike.state.status === 'planted') {
-			state.roundTimer = spike.state.timer;
+			S.roundTimer = spike.state.timer;
 		} else {
-			state.roundTimer -= dt;
-			if (state.roundTimer <= 0) {
+			S.roundTimer -= dt;
+			if (S.roundTimer <= 0) {
 				endRound(false,'Time expired — Rust holds the yard');
 				return;
 			}
@@ -562,14 +563,14 @@ export function createGame(deps) {
 		weapons.step(dt,player.groundSpeed(),input.state.aiming && body.alive);
 		refreshViews();
 		allies.step(dt,allyContext());
-		if (state.phase !== PHASES.LIVE) return;
+		if (S.phase !== PHASES.LIVE) return;
 		bots.step(dt,botContext());
-		if (state.phase !== PHASES.LIVE) return;
+		if (S.phase !== PHASES.LIVE) return;
 		spike.step(dt,{
 			onBeep: () => audio.beep(),
 			onExploded: (site) => endRound(true,`Spike detonated at Site ${site.name}`),
 		});
-		if (state.phase !== PHASES.LIVE) return;
+		if (S.phase !== PHASES.LIVE) return;
 		grenades.step(dt,grenadeContext());
 		if (spike.state.status === 'carried') {
 			let planting = false;
@@ -594,7 +595,7 @@ export function createGame(deps) {
 			}
 		}
 		if (!rotated && spike.state.status === 'carried' && body.alive
-			&& allies.aliveCount() <= 2 && state.phaseTime > 25) {
+			&& allies.aliveCount() <= 2 && S.phaseTime > 25) {
 			rotated = true;
 			planSite = planSite === 'A' ? 'B' : 'A';
 			hud.killfeed(`Ember-1: Rotate — fall back to Site ${planSite}`,true);
@@ -651,8 +652,8 @@ export function createGame(deps) {
 		hud.setAds(weapons.adsAmount() > 0.6);
 		hud.setHealth(body.health,body.maxHealth);
 		syncAmmo();
-		hud.setTimer(state.roundTimer,spike.state.status === 'planted');
-		hud.setMoney(state.money);
+		hud.setTimer(S.roundTimer,spike.state.status === 'planted');
+		hud.setMoney(S.money);
 		hud.setSpike(spike.state.status,spike.state.site ? spike.state.site.name : '',spike.state.timer);
 		hud.setCrosshairSpread(3 + weapons.spread(player.groundSpeed()) * 420);
 	}
@@ -698,7 +699,7 @@ export function createGame(deps) {
 		}
 	}
 	function syncCamera(cameraOut) {
-		if (!body.alive && state.phase === PHASES.LIVE) {
+		if (!body.alive && S.phase === PHASES.LIVE) {
 			const ally = allies.firstAlive();
 			if (ally) {
 				cameraOut.position.set(ally.mover.position.x,ally.mover.position.y + 1.62,ally.mover.position.z);
@@ -729,17 +730,17 @@ export function createGame(deps) {
 	}
 	function liveShot() {
 		startMatch();
-		state.phase = PHASES.LIVE;
-		state.round = 1;
+		S.phase = PHASES.LIVE;
+		S.round = 1;
 		owned.rifle = true;
-		state.loadout.primary = 'rifle';
-		weapons.equip(state.loadout);
+		S.loadout.primary = 'rifle';
+		weapons.equip(S.loadout);
 	}
 	function setupShot(name) {
 		shotMode = name;
 		hud.hideOverlay();
 		if (name === 'start') {
-			state.phase = PHASES.MENU;
+			S.phase = PHASES.MENU;
 			player.reset(world.spawns.ember);
 			body.position.set(1.5,0,13);
 			body.yaw = 0.12;
@@ -762,7 +763,7 @@ export function createGame(deps) {
 		}
 		if (name === 'play') {
 			liveShot();
-			state.roundTimer = ROUND_SECONDS;
+			S.roundTimer = ROUND_SECONDS;
 			body.position.set(0,0,6);
 			body.yaw = 0;
 			body.pitch = 0;
@@ -801,7 +802,7 @@ export function createGame(deps) {
 		}
 		if (name === 'plant') {
 			liveShot();
-			state.roundTimer = ROUND_SECONDS;
+			S.roundTimer = ROUND_SECONDS;
 			body.position.set(-11,0,-10.5);
 			body.yaw = -2.3;
 			body.pitch = 0;
@@ -836,15 +837,15 @@ export function createGame(deps) {
 		allies.items[0].yaw = 2.5;
 		settle(10);
 		aimAt(bots.aimPoint(0));
-		state.phase = PHASES.ROUND_END;
-		state.roundsWon = 1;
+		S.phase = PHASES.ROUND_END;
+		S.roundsWon = 1;
 		hud.setScore(1,0,1);
 		tally.you.k = 2;
 		tally.allies[0].k = 1;
 		tally.allies[1].k = 1;
 		tally.allies[2].k = 1;
 		for (const t of tally.bots) t.d = 1;
-		state.roundHistory = ['W'];
+		S.roundHistory = ['W'];
 		hud.showOverlay('roundEnd',{ won: true,reason: 'All Rust bots eliminated',wonRounds: 1,lost: 0,earned: 600,mvp: 'You (2K / 0D)' });
 		hud.showScoreboard(boardData());
 		frame(0);

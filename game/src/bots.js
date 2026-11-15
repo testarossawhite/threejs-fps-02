@@ -1,5 +1,5 @@
-// Rust bot brains: route, hold, engage, defuse.
 import * as THREE from 'three';
+const T = THREE;
 import { createMover } from './mover.js';
 import { buildSoldier,animateSoldier } from './soldier.js';
 import { engageMove,faceYaw,moveToward,pickVisible } from './combat.js';
@@ -20,14 +20,14 @@ const BOT_GUNS = [
 	{ short: 'BR-12',mul: 1.2 },
 	{ short: 'P-9',mul: 0.7 },
 ];
-const _dir = new THREE.Vector3();
-const _muzzle = new THREE.Vector3();
-const _aim = new THREE.Vector3();
-const _far = new THREE.Vector3();
+const _dir = new T.Vector3();
+const _muzzle = new T.Vector3();
+const _aim = new T.Vector3();
+const _far = new T.Vector3();
 export function createBots(scene,world,random) {
 	const items = [];
 	const hitMeshes = [];
-	const raycaster = new THREE.Raycaster();
+	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
 	for (let i = 0; i < world.spawns.rust.length; i += 1) {
 		const spawn = world.spawns.rust[i];
@@ -50,8 +50,8 @@ export function createBots(scene,world,random) {
 			goalSite: i % 2 === 0 ? 'A' : 'B',
 			route: [],
 			routeIndex: 0,
-			holdPoint: new THREE.Vector3(),
-			lastSeen: new THREE.Vector3(),
+			holdPoint: new T.Vector3(),
+			lastSeen: new T.Vector3(),
 			lastSeenAt: -99,
 			target: null,
 			reactionAt: 0,
@@ -317,7 +317,7 @@ export function createBots(scene,world,random) {
 		},
 		aimPoint(index) {
 			const bot = items[index % items.length];
-			return new THREE.Vector3(bot.mover.position.x,1.25,bot.mover.position.z);
+			return new T.Vector3(bot.mover.position.x,1.25,bot.mover.position.z);
 		},
 	};
 }

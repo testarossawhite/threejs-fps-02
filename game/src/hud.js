@@ -1,4 +1,3 @@
-// DOM HUD: bars, feeds, minimap, scoreboard, menus.
 import { PRICES } from './state.js';
 const BUY_ITEMS = [
 	{ key: '1',id: 'rifle',name: 'VK-7 Carbine',desc: 'Auto rifle · 30 rounds · headshot kills',price: PRICES.rifle },
@@ -14,35 +13,9 @@ const BUY_ITEMS = [
 ];
 export function createHud() {
 	const $ = (id) => document.getElementById(id);
-	const overlay = $('overlay');
-	const title = $('overlay-title');
-	const copy = $('overlay-copy');
-	const play = $('play');
-	const buyList = $('buy-list');
-	const buyMoney = $('buy-money');
-	const ammoMag = $('ammo-mag');
-	const ammoReserve = $('ammo-reserve');
-	const weaponName = $('weapon-name');
-	const grenadeInfo = $('grenade-info');
-	const healthFill = $('health-fill');
-	const healthValue = $('health-value');
-	const moneyValue = $('money-value');
-	const timerValue = $('timer-value');
-	const scoreEmber = $('score-ember');
-	const scoreRust = $('score-rust');
-	const roundValue = $('round-value');
-	const spikeStatus = $('spike-status');
-	const killfeed = $('killfeed');
-	const hitmarker = $('hitmarker');
-	const crosshair = $('crosshair');
-	const damageVignette = $('damage-vignette');
-	const plantBar = $('plant-bar');
-	const plantFill = $('plant-fill');
-	const plantLabel = $('plant-label');
-	const kills = $('kills');
-	const dmgdir = $('dmgdir');
-	const flashblind = $('flashblind');
-	const scoreboard = $('scoreboard');
+	const [overlay,title,copy,play,buyList,buyMoney,ammoMag,ammoReserve,weaponName,grenadeInfo,healthFill,healthValue,moneyValue,timerValue,scoreEmber,scoreRust,roundValue,spikeStatus,killfeed,hitmarker,crosshair,damageVignette,plantBar,plantFill,plantLabel,kills,dmgdir,flashblind,scoreboard] = [
+		'overlay','overlay-title','overlay-copy','play','buy-list','buy-money','ammo-mag','ammo-reserve','weapon-name','grenade-info','health-fill','health-value','money-value','timer-value','score-ember','score-rust','round-value','spike-status','killfeed','hitmarker','crosshair','damage-vignette','plant-bar','plant-fill','plant-label','kills','dmgdir','flashblind','scoreboard',
+	].map($);
 	const mapCtx = $('minimap').getContext('2d');
 	let hitTimer = 0;
 	let damageTimer = 0;

@@ -1,4 +1,3 @@
-// Seeded RNG so staged shots stay deterministic.
 export function mulberry32(initial) {
 	let a = initial | 0;
 	return function random() {

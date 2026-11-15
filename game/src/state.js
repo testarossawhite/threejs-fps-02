@@ -1,4 +1,3 @@
-// Match state, phases, prices, rewards.
 export const PHASES = {
 	MENU: 'menu',
 	BUY: 'buy',

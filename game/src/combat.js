@@ -1,14 +1,14 @@
-// Shared combat helpers for both bot brains.
 import * as THREE from 'three';
+const T = THREE;
 import { range } from './rng.js';
 const BURST_MIN = 3;
 const BURST_MAX = 5;
 const SHOT_GAP = 0.11;
-const _toTarget = new THREE.Vector3();
-const _forward = new THREE.Vector3();
-const _eye = new THREE.Vector3();
-const _chest = new THREE.Vector3();
-const _dir = new THREE.Vector3();
+const _toTarget = new T.Vector3();
+const _forward = new T.Vector3();
+const _eye = new T.Vector3();
+const _chest = new T.Vector3();
+const _dir = new T.Vector3();
 export function faceYaw(body,targetYaw,dt,rate = 6) {
 	let diff = targetYaw - body.yaw;
 	while (diff > Math.PI) diff -= Math.PI * 2;

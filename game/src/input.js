@@ -1,4 +1,3 @@
-// Keyboard/mouse + pointer-lock look.
 export function createInput(canvas,onLockChange) {
 	const keys = new Set();
 	const pressed = new Set();

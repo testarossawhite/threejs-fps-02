@@ -1,24 +1,24 @@
-// The spike: carry, plant, defuse, detonate.
 import * as THREE from 'three';
+const T = THREE;
 import { PALETTE } from './palette.js';
 import { PLANT_SECONDS,DEFUSE_SECONDS,SPIKE_SECONDS } from './state.js';
 export function createSpike(scene,world) {
-	const group = new THREE.Group();
-	const body = new THREE.Mesh(
-		new THREE.BoxGeometry(0.34,0.22,0.24),
-		new THREE.MeshStandardMaterial({ color: new THREE.Color(PALETTE.accent),roughness: 0.4,metalness: 0.3 }),
+	const group = new T.Group();
+	const body = new T.Mesh(
+		new T.BoxGeometry(0.34,0.22,0.24),
+		new T.MeshStandardMaterial({ color: new T.Color(PALETTE.accent),roughness: 0.4,metalness: 0.3 }),
 	);
 	body.castShadow = true;
-	const light = new THREE.Mesh(
-		new THREE.SphereGeometry(0.06,10,8),
-		new THREE.MeshBasicMaterial({ color: new THREE.Color(PALETTE.accent) }),
+	const light = new T.Mesh(
+		new T.SphereGeometry(0.06,10,8),
+		new T.MeshBasicMaterial({ color: new T.Color(PALETTE.accent) }),
 	);
 	light.position.set(0,0.16,0);
-	const beacon = new THREE.Mesh(
-		new THREE.CylinderGeometry(0.5,0.7,3.2,16,1,true),
-		new THREE.MeshBasicMaterial({
-			color: new THREE.Color(PALETTE.accent),transparent: true,opacity: 0.16,
-			side: THREE.DoubleSide,depthWrite: false,
+	const beacon = new T.Mesh(
+		new T.CylinderGeometry(0.5,0.7,3.2,16,1,true),
+		new T.MeshBasicMaterial({
+			color: new T.Color(PALETTE.accent),transparent: true,opacity: 0.16,
+			side: T.DoubleSide,depthWrite: false,
 		}),
 	);
 	beacon.position.y = 1.6;
@@ -28,7 +28,7 @@ export function createSpike(scene,world) {
 	const spike = {
 		status: 'carried',
 		site: null,
-		pos: new THREE.Vector3(),
+		pos: new T.Vector3(),
 		plantProgress: 0,
 		timer: SPIKE_SECONDS,
 		beepAt: 0,

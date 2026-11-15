@@ -1,5 +1,5 @@
-// The yard: geometry, colliders, waypoints, light.
 import * as THREE from 'three';
+const T = THREE;
 import { PALETTE } from './palette.js';
 import {
 	groundTexture,wallTexture,crateTexture,containerTexture,barrelTexture,
@@ -48,23 +48,23 @@ function makeSign(text,sub,color) {
 	ctx.fillStyle = '#b3a189';
 	ctx.font = '28px system-ui, sans-serif';
 	ctx.fillText(sub,26,103);
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	texture.anisotropy = 4;
 	return texture;
 }
 function std(map,color,roughness,metalness) {
-	return new THREE.MeshStandardMaterial({
-		map,color: new THREE.Color(color),roughness,metalness,
+	return new T.MeshStandardMaterial({
+		map,color: new T.Color(color),roughness,metalness,
 	});
 }
 export function createWorld(scene) {
-	const group = new THREE.Group();
+	const group = new T.Group();
 	scene.add(group);
 	const mats = {};
 	for (const name of Object.keys(PALETTE)) {
-		mats[name] = new THREE.MeshStandardMaterial({
-			color: new THREE.Color(PALETTE[name]),
+		mats[name] = new T.MeshStandardMaterial({
+			color: new T.Color(PALETTE[name]),
 			roughness: name === 'accent' || name === 'ink' ? 0.55 : 0.92,
 			metalness: name === 'steel' ? 0.55 : 0.03,
 		});
@@ -81,45 +81,45 @@ export function createWorld(scene) {
 	const barrelSteel = std(barrelTexture(),'#77828a',0.5,0.45);
 	const barrelAmber = std(barrelTexture(),'#c07f2a',0.55,0.3);
 	const hazardMat = std(hazardTexture(),'#e8e2d4',0.8,0.05);
-	const glowA = new THREE.MeshStandardMaterial({
-		color: new THREE.Color(PALETTE.accent),emissive: new THREE.Color(PALETTE.accent),
+	const glowA = new T.MeshStandardMaterial({
+		color: new T.Color(PALETTE.accent),emissive: new T.Color(PALETTE.accent),
 		emissiveIntensity: 1.8,roughness: 0.4,
 	});
-	const glowB = new THREE.MeshStandardMaterial({
-		color: new THREE.Color(PALETTE.siteB),emissive: new THREE.Color(PALETTE.siteB),
+	const glowB = new T.MeshStandardMaterial({
+		color: new T.Color(PALETTE.siteB),emissive: new T.Color(PALETTE.siteB),
 		emissiveIntensity: 1.6,roughness: 0.4,
 	});
 	const colliders = [];
 	const shootables = [];
-	const raycaster = new THREE.Raycaster();
+	const raycaster = new T.Raycaster();
 	raycaster.far = 90;
 	function box(w,h,d,x,y,z,material,collide = true) {
-		const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats[material] ?? material);
+		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),mats[material] ?? material);
 		mesh.position.set(x,y,z);
 		mesh.castShadow = true;
 		mesh.receiveShadow = true;
 		group.add(mesh);
 		if (collide) {
-			colliders.push(new THREE.Box3().setFromObject(mesh));
+			colliders.push(new T.Box3().setFromObject(mesh));
 			shootables.push(mesh);
 		}
 		return mesh;
 	}
 	function cyl(rTop,rBottom,h,x,y,z,material,segments = 18) {
-		const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,h,segments),mats[material] ?? material);
+		const mesh = new T.Mesh(new T.CylinderGeometry(rTop,rBottom,h,segments),mats[material] ?? material);
 		mesh.position.set(x,y,z);
 		mesh.castShadow = true;
 		mesh.receiveShadow = true;
 		group.add(mesh);
-		colliders.push(new THREE.Box3().setFromObject(mesh));
+		colliders.push(new T.Box3().setFromObject(mesh));
 		shootables.push(mesh);
 		return mesh;
 	}
 	function fMark(w,d,x,z,material,opacity = 0.85) {
-		const mesh = new THREE.Mesh(
-			new THREE.PlaneGeometry(w,d),
-			new THREE.MeshStandardMaterial({
-				color: new THREE.Color(PALETTE[material]),roughness: 0.9,
+		const mesh = new T.Mesh(
+			new T.PlaneGeometry(w,d),
+			new T.MeshStandardMaterial({
+				color: new T.Color(PALETTE[material]),roughness: 0.9,
 				transparent: true,opacity,
 			}),
 		);
@@ -130,20 +130,20 @@ export function createWorld(scene) {
 		return mesh;
 	}
 	function gStr(w,h,d,x,y,z,material) {
-		const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),material);
 		mesh.position.set(x,y,z);
 		group.add(mesh);
 		return mesh;
 	}
-	const sky = new THREE.Mesh(
-		new THREE.SphereGeometry(135,28,14),
-		new THREE.MeshBasicMaterial({ map: skyTexture(),side: THREE.BackSide,fog: false,depthWrite: false }),
+	const sky = new T.Mesh(
+		new T.SphereGeometry(135,28,14),
+		new T.MeshBasicMaterial({ map: skyTexture(),side: T.BackSide,fog: false,depthWrite: false }),
 	);
 	sky.renderOrder = -10;
 	scene.add(sky);
 	const glowTex = glowTexture();
-	const sunHalo = new THREE.Sprite(new THREE.SpriteMaterial({
-		map: glowTex,color: new THREE.Color('#fff3c4'),transparent: true,opacity: 0.95,
+	const sunHalo = new T.Sprite(new T.SpriteMaterial({
+		map: glowTex,color: new T.Color('#fff3c4'),transparent: true,opacity: 0.95,
 		fog: false,depthWrite: false,
 	}));
 	sunHalo.position.set(58,76,44);
@@ -154,26 +154,26 @@ export function createWorld(scene) {
 		[-70,52,-60,90],[40,58,-80,110],[85,46,30,80],[-30,62,85,95],[10,50,-105,75],
 	];
 	for (const [x,y,z,s] of cloudSpots) {
-		const cloud = new THREE.Sprite(new THREE.SpriteMaterial({
+		const cloud = new T.Sprite(new T.SpriteMaterial({
 			map: cloudTex,transparent: true,opacity: 0.9,fog: false,depthWrite: false,
 		}));
 		cloud.position.set(x,y,z);
 		cloud.scale.set(s,s * 0.42,1);
 		scene.add(cloud);
 	}
-	const silhouette = new THREE.MeshBasicMaterial({ color: new THREE.Color('#5d6a75') });
-	const silhouetteFar = new THREE.MeshBasicMaterial({ color: new THREE.Color('#8b98a3') });
+	const sil = new T.MeshBasicMaterial({ color: new T.Color('#5d6a75') });
+	const silF = new T.MeshBasicMaterial({ color: new T.Color('#8b98a3') });
 	const facadeTex = buildingTexture();
-	const facadeNear = new THREE.MeshBasicMaterial({ map: facadeTex,color: new THREE.Color('#c3ccd2') });
-	const facadeFar = new THREE.MeshBasicMaterial({ map: facadeTex,color: new THREE.Color('#d3dde6') });
+	const facN = new T.MeshBasicMaterial({ map: facadeTex,color: new T.Color('#c3ccd2') });
+	const facF = new T.MeshBasicMaterial({ map: facadeTex,color: new T.Color('#d3dde6') });
 	function sBox(w,h,d,x,y,z,far = false) {
-		const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),far ? silhouetteFar : silhouette);
+		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),far ? silF : sil);
 		mesh.position.set(x,y,z);
 		scene.add(mesh);
 		return mesh;
 	}
 	function fBox(w,h,d,x,y,z,far = false) {
-		const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),far ? facadeFar : facadeNear);
+		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),far ? facF : facN);
 		mesh.position.set(x,y,z);
 		scene.add(mesh);
 		return mesh;
@@ -184,7 +184,7 @@ export function createWorld(scene) {
 	sBox(0.18,6.5,0.18,-19.5,17,-27);
 	sBox(1.6,1.6,1.6,-19.5,13.4,-27);
 	for (const [x,h] of [[27,17],[31.5,21]]) {
-		const stack = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.9,h,12),silhouette);
+		const stack = new T.Mesh(new T.CylinderGeometry(1.5,1.9,h,12),sil);
 		stack.position.set(x,h / 2,-26);
 		scene.add(stack);
 	}
@@ -192,10 +192,10 @@ export function createWorld(scene) {
 	sBox(0.5,9,0.5,-25.5,4.5,15);
 	sBox(0.5,9,0.5,-27.5,4.5,12.6);
 	sBox(0.5,9,0.5,-27.5,4.5,17.4);
-	const tank = new THREE.Mesh(new THREE.CylinderGeometry(3.1,3.1,4.4,14),silhouette);
+	const tank = new T.Mesh(new T.CylinderGeometry(3.1,3.1,4.4,14),sil);
 	tank.position.set(-27.5,11.4,15);
 	scene.add(tank);
-	const tankRoof = new THREE.Mesh(new THREE.CylinderGeometry(0.3,3.2,1.8,14),silhouette);
+	const tankRoof = new T.Mesh(new T.CylinderGeometry(0.3,3.2,1.8,14),sil);
 	tankRoof.position.set(-27.5,14.5,15);
 	scene.add(tankRoof);
 	sBox(7,2.6,2.6,29,1.3,6,true);
@@ -210,6 +210,41 @@ export function createWorld(scene) {
 	fBox(9,14,8,33,7,24,true);
 	fBox(14,10,9,8,5,36,true);
 	fBox(10,16,9,-16,8,35,true);
+	function rBox(w,h,d,x,y,z,m) {
+		const mesh = new T.Mesh(new T.BoxGeometry(w,h,d),m);
+		mesh.position.set(x,y,z);
+		scene.add(mesh);
+		return mesh;
+	}
+	for (const [bx,bz,top,bw,bd,far,gear] of [
+		[4,-31.5,8.5,30,2.5,1,3],[-27,-33,15,11,9,1,5],[24,-34,11,9,8,1,1],[36,-18,18,13,10,1,3],
+		[-36,-14,12,10,9,0,1],[-34,22,9,12,9,0,1],[33,24,14,9,8,1,5],[8,36,10,14,9,1,3],[-16,35,16,10,9,1,1],
+	]) {
+		const m = far ? silF : sil;
+		rBox(bw + 0.7,0.55,bd + 0.7,bx,top + 0.27,bz,m);
+		rBox(bw + 0.4,0.3,bd + 0.4,bx,top - 0.35,bz,m);
+		if (gear & 1) {
+			rBox(2.3,1.15,1.7,bx - bw * 0.28,top + 0.58,bz,m);
+			rBox(1.7,0.85,1.4,bx + bw * 0.3,top + 0.43,bz + bd * 0.15,m);
+		}
+		if (gear & 2) {
+			const mast = new T.Mesh(new T.CylinderGeometry(0.07,0.1,4.6,6),m);
+			mast.position.set(bx + bw * 0.36,top + 2.8,bz);
+			scene.add(mast);
+			rBox(1.7,0.09,0.09,bx + bw * 0.36,top + 4.4,bz,m);
+		}
+		if (gear & 4) {
+			rBox(3.4,0.5,3.4,bx,top + 0.25,bz,m);
+			const tk = new T.Mesh(new T.CylinderGeometry(1.5,1.5,2.4,12),m);
+			tk.position.set(bx,top + 1.7,bz);
+			scene.add(tk);
+			const roof = new T.Mesh(new T.CylinderGeometry(0.25,1.65,0.9,12),m);
+			roof.position.set(bx,top + 3.35,bz);
+			scene.add(roof);
+		}
+	}
+	rBox(30.4,0.3,0.2,4,5.7,-30.18,silF);
+	rBox(30.4,0.3,0.2,4,2.9,-30.18,silF);
 	box(HALF_X * 2 + 0.8,0.4,HALF_Z * 2 + 0.8,0,-0.2,0,groundMat);
 	box(0.4,WALL_H,HALF_Z * 2 + 0.8,-HALF_X - 0.2,WALL_H / 2,0,wallMat);
 	box(0.4,WALL_H,HALF_Z * 2 + 0.8,HALF_X + 0.2,WALL_H / 2,0,wallMat);
@@ -219,13 +254,21 @@ export function createWorld(scene) {
 	box(0.55,0.18,HALF_Z * 2 + 0.8,HALF_X + 0.2,WALL_H + 0.09,0,'steel',false);
 	box(HALF_X * 2 + 0.8,0.18,0.55,0,WALL_H + 0.09,-HALF_Z - 0.2,'steel',false);
 	box(HALF_X * 2 + 0.8,0.18,0.55,0,WALL_H + 0.09,HALF_Z + 0.2,'steel',false);
+	for (const px of [-15,-7.5,0,7.5,15]) {
+		box(0.55,WALL_H,0.26,px,WALL_H / 2,-17.92,wallMat);
+		box(0.55,WALL_H,0.26,px,WALL_H / 2,17.92,wallMat);
+	}
+	for (const pz of [-12,0,12]) {
+		box(0.26,WALL_H,0.55,-19.92,WALL_H / 2,pz,wallMat);
+		box(0.26,WALL_H,0.55,19.92,WALL_H / 2,pz,wallMat);
+	}
 	box(10,0.5,8,-12,0.25,-12,ccM);
 	gStr(10,0.1,0.22,-12,0.52,-8.05,glowA);
 	gStr(10,0.1,0.22,-12,0.52,-15.95,glowA);
 	gStr(0.22,0.1,8,-16.95,0.52,-12,glowA);
 	gStr(0.22,0.1,8,-7.05,0.52,-12,glowA);
 	box(3.2,3.4,2.4,-15.5,1.7,-15.5,wallMat);
-	const furnaceMouth = new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.4),glowA);
+	const furnaceMouth = new T.Mesh(new T.PlaneGeometry(1.8,1.4),glowA);
 	furnaceMouth.position.set(-13.9,1.3,-15.5);
 	furnaceMouth.rotation.y = Math.PI / 2;
 	group.add(furnaceMouth);
@@ -233,9 +276,9 @@ export function createWorld(scene) {
 	box(1.4,1.1,1.4,-8.6,0.55,-14.6,crM);
 	box(1.4,1.1,1.4,-8.6,0.55,-9.4,crM);
 	fMark(7,6,-12,-12,'accent',0.32);
-	const signA = new THREE.Mesh(
-		new THREE.PlaneGeometry(5.2,1.3),
-		new THREE.MeshBasicMaterial({ map: makeSign('SITE A','FOUNDRY','#f0a63e') }),
+	const signA = new T.Mesh(
+		new T.PlaneGeometry(5.2,1.3),
+		new T.MeshBasicMaterial({ map: makeSign('SITE A','FOUNDRY','#f0a63e') }),
 	);
 	signA.position.set(-12,3.4,-17.7);
 	group.add(signA);
@@ -247,32 +290,38 @@ export function createWorld(scene) {
 	fMark(7,6,12,-11,'siteB',0.32);
 	gStr(7,0.08,0.22,12,0.04,-7.6,glowB);
 	gStr(0.22,0.08,6.8,8.4,0.04,-11,glowB);
-	const signB = new THREE.Mesh(
-		new THREE.PlaneGeometry(5.2,1.3),
-		new THREE.MeshBasicMaterial({ map: makeSign('SITE B','DEPOT','#3fbfae') }),
+	const signB = new T.Mesh(
+		new T.PlaneGeometry(5.2,1.3),
+		new T.MeshBasicMaterial({ map: makeSign('SITE B','DEPOT','#3fbfae') }),
 	);
 	signB.position.set(12,3.4,-17.7);
 	group.add(signB);
-	const hazardA = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.06,0.9),hazardMat);
+	const hazardA = new T.Mesh(new T.BoxGeometry(3.4,0.06,0.9),hazardMat);
 	hazardA.position.set(-12,0.03,-6.9);
 	group.add(hazardA);
-	const hazardB = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.06,0.9),hazardMat);
+	const hazardB = new T.Mesh(new T.BoxGeometry(3.4,0.06,0.9),hazardMat);
 	hazardB.position.set(12,0.03,-6.9);
 	group.add(hazardB);
 	cyl(2.2,2.4,7,0,3.5,-2,siloMat,24);
 	cyl(0.4,2.2,1.6,0,7.8,-2,'hairline',24);
-	const siloBandLow = new THREE.Mesh(new THREE.TorusGeometry(2.42,0.07,8,28),mats.steel);
+	const siloBandLow = new T.Mesh(new T.TorusGeometry(2.42,0.07,8,28),mats.steel);
 	siloBandLow.rotation.x = Math.PI / 2;
 	siloBandLow.position.set(0,1.4,-2);
 	group.add(siloBandLow);
 	const siloBandHigh = siloBandLow.clone();
 	siloBandHigh.position.y = 5.6;
 	group.add(siloBandHigh);
-	const siloSkirt = new THREE.Mesh(
-		new THREE.CylinderGeometry(2.44,2.46,0.5,24,1,true),hazardMat,
+	const siloSkirt = new T.Mesh(
+		new T.CylinderGeometry(2.44,2.46,0.5,24,1,true),hazardMat,
 	);
 	siloSkirt.position.set(0,0.25,-2);
 	group.add(siloSkirt);
+	for (let i = 0; i < 11; i += 1) gStr(0.46,0.045,0.045,0,0.7 + i * 0.58,0.44,mats.steel);
+	gStr(0.05,6.6,0.05,-0.25,3.6,0.44,mats.steel);
+	gStr(0.05,6.6,0.05,0.25,3.6,0.44,mats.steel);
+	const siloPipe = new T.Mesh(new T.CylinderGeometry(0.07,0.07,6.8,8),mats.steel);
+	siloPipe.position.set(2.34,3.4,-2);
+	group.add(siloPipe);
 	box(1.6,1.1,1.6,-4.2,0.55,-2,crM);
 	box(1.6,1.1,1.6,4.2,0.55,-2,crM);
 	box(1.2,2.2,1.2,-3.2,1.1,-6.4,wallMat);
@@ -283,29 +332,36 @@ export function createWorld(scene) {
 	box(1.6,1.1,1.6,-17,0.55,10.5,crM);
 	box(4.8,2.4,2.4,15.5,1.2,4,containerSteel);
 	box(2.4,2.4,2.4,15.5,3.6,3.2,containerRust);
+	for (const [cx,cy,cz,cw,cd,cm] of [
+		[13.5,1.2,-13.5,4.8,2.4,containerSteel],[13.5,3.6,-13.5,4.8,2.4,containerRust],
+		[15.5,1.2,4,4.8,2.4,containerSteel],[8.2,1.2,-15.2,2.4,4.8,containerRust],
+	]) {
+		for (const sx of [-1,1]) for (const sz of [-1,1]) gStr(0.14,2.44,0.14,cx + sx * (cw / 2 - 0.02),cy,cz + sz * (cd / 2 - 0.02),cm);
+		gStr(cw + 0.06,0.1,cd + 0.06,cx,cy + 1.24,cz,cm);
+	}
 	cyl(0.6,0.6,1.3,11.5,0.65,8,barrelRed);
 	cyl(0.6,0.6,1.3,12.8,0.65,8.6,barrelSteel);
 	cyl(0.6,0.6,1.3,12.15,0.65,6.9,barrelAmber);
 	box(1.6,1.1,1.6,10,0.55,-1,crM);
 	box(2.4,0.9,1.2,-4,0.45,11.5,ccM);
 	box(2.4,0.9,1.2,4,0.45,11.5,ccM);
-	const signYard = new THREE.Mesh(
-		new THREE.PlaneGeometry(6.4,1.6),
-		new THREE.MeshBasicMaterial({ map: makeSign('DUSTWORKS YARD','EMBER vs RUST  •  FIRST TO 4 ROUNDS','#f0a63e') }),
+	const signYard = new T.Mesh(
+		new T.PlaneGeometry(6.4,1.6),
+		new T.MeshBasicMaterial({ map: makeSign('DUSTWORKS YARD','EMBER vs RUST  •  FIRST TO 4 ROUNDS','#f0a63e') }),
 	);
 	signYard.position.set(0,3.2,17.7);
 	signYard.rotation.y = Math.PI;
 	group.add(signYard);
 	function lampPost(x,z,glowMaterial,colorHex) {
-		const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,4.4,8),mats.steel);
+		const pole = new T.Mesh(new T.CylinderGeometry(0.07,0.09,4.4,8),mats.steel);
 		pole.position.set(x,2.2,z);
 		pole.castShadow = true;
 		group.add(pole);
-		const head = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.14,0.3),glowMaterial);
+		const head = new T.Mesh(new T.BoxGeometry(0.55,0.14,0.3),glowMaterial);
 		head.position.set(x,4.45,z);
 		group.add(head);
-		const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-			map: glowTex,color: new THREE.Color(colorHex),transparent: true,opacity: 0.22,depthWrite: false,
+		const halo = new T.Sprite(new T.SpriteMaterial({
+			map: glowTex,color: new T.Color(colorHex),transparent: true,opacity: 0.22,depthWrite: false,
 		}));
 		halo.position.set(x,4.45,z);
 		halo.scale.set(3.4,3.4,1);
@@ -314,13 +370,13 @@ export function createWorld(scene) {
 	lampPost(-8.6,-14.9,glowA,PALETTE.accent);
 	lampPost(14.8,-7.9,glowB,PALETTE.siteB);
 	lampPost(3.4,5.4,glowA,PALETTE.accent);
-	const tireMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#201d1a'),roughness: 0.96,metalness: 0 });
+	const tireMat = new T.MeshStandardMaterial({ color: new T.Color('#201d1a'),roughness: 0.96,metalness: 0 });
 	const sandMat = std(concreteTexture(),'#a8915f',0.98,0);
-	const rockMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#4c4238'),roughness: 0.97,metalness: 0 });
+	const rockMat = new T.MeshStandardMaterial({ color: new T.Color('#4c4238'),roughness: 0.97,metalness: 0 });
 	function tireStack(x,z,count) {
 		cyl(0.4,0.4,count * 0.26,x,(count * 0.26) / 2,z,tireMat);
 		for (let i = 0; i < count; i += 1) {
-			const tire = new THREE.Mesh(new THREE.TorusGeometry(0.32,0.13,8,18),tireMat);
+			const tire = new T.Mesh(new T.TorusGeometry(0.32,0.13,8,18),tireMat);
 			tire.rotation.x = Math.PI / 2;
 			tire.position.set(x,0.14 + i * 0.26,z);
 			tire.castShadow = true;
@@ -345,7 +401,7 @@ export function createWorld(scene) {
 		base.rotation.y = rotY;
 		for (let row = 0; row < 2; row += 1) {
 			for (let i = 0; i < 5; i += 1) {
-				const bag = new THREE.Mesh(new THREE.SphereGeometry(0.24,8,6),sandMat);
+				const bag = new T.Mesh(new T.SphereGeometry(0.24,8,6),sandMat);
 				bag.scale.set(1.15,0.5,0.72);
 				const along = -0.84 + i * 0.42 + (row % 2) * 0.2;
 				bag.position.set(
@@ -364,15 +420,15 @@ export function createWorld(scene) {
 	box(0.26,4.4,0.26,-3.4,2.2,6.5,'steel');
 	box(0.26,4.4,0.26,3.4,2.2,6.5,'steel');
 	box(7.4,0.3,0.34,0,4.42,6.5,'steel',false);
-	const signMid = new THREE.Mesh(
-		new THREE.PlaneGeometry(2.6,0.65),
-		new THREE.MeshBasicMaterial({ map: makeSign('MID','THE LANES','#f0a63e') }),
+	const signMid = new T.Mesh(
+		new T.PlaneGeometry(2.6,0.65),
+		new T.MeshBasicMaterial({ map: makeSign('MID','THE LANES','#f0a63e') }),
 	);
 	signMid.position.set(0,3.9,6.28);
 	group.add(signMid);
 	gStr(0.5,0.1,0.24,0,4.22,6.5,glowA);
 	function pipe(len,x,y,z,alongZ) {
-		const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,len,8),mats.steel);
+		const mesh = new T.Mesh(new T.CylinderGeometry(0.08,0.08,len,8),mats.steel);
 		if (alongZ) mesh.rotation.x = Math.PI / 2;
 		else mesh.rotation.z = Math.PI / 2;
 		mesh.position.set(x,y,z);
@@ -382,11 +438,11 @@ export function createWorld(scene) {
 	pipe(30,0,2.95,-17.92,false);
 	pipe(28,-19.92,3.1,0,true);
 	function vent(x,y,z,rotY) {
-		const ventGroup = new THREE.Group();
-		const back = new THREE.Mesh(new THREE.BoxGeometry(1.3,0.85,0.07),mats.ink);
+		const ventGroup = new T.Group();
+		const back = new T.Mesh(new T.BoxGeometry(1.3,0.85,0.07),mats.ink);
 		ventGroup.add(back);
 		for (let i = 0; i < 3; i += 1) {
-			const slat = new THREE.Mesh(new THREE.BoxGeometry(1.14,0.09,0.03),mats.steel);
+			const slat = new T.Mesh(new T.BoxGeometry(1.14,0.09,0.03),mats.steel);
 			slat.position.set(0,-0.24 + i * 0.24,-0.05);
 			ventGroup.add(slat);
 		}
@@ -398,9 +454,9 @@ export function createWorld(scene) {
 	vent(19.94,2.5,-4,Math.PI / 2);
 	vent(-19.94,2.4,8,-Math.PI / 2);
 	function poster(title,sub,color,x,y,z,rotY) {
-		const mesh = new THREE.Mesh(
-			new THREE.PlaneGeometry(1.15,1.44),
-			new THREE.MeshStandardMaterial({ map: posterTexture(title,sub,color),roughness: 0.92 }),
+		const mesh = new T.Mesh(
+			new T.PlaneGeometry(1.15,1.44),
+			new T.MeshStandardMaterial({ map: posterTexture(title,sub,color),roughness: 0.92 }),
 		);
 		mesh.position.set(x,y,z);
 		mesh.rotation.y = rotY;
@@ -412,9 +468,9 @@ export function createWorld(scene) {
 	box(0.5,0.7,0.12,6.2,1.6,-17.9,'steel',false);
 	box(0.5,0.7,0.12,-19.9,1.5,-3,'steel',false);
 	function decal(kind,size,x,z,rot = 0,opacity = 1) {
-		const mesh = new THREE.Mesh(
-			new THREE.PlaneGeometry(size,size),
-			new THREE.MeshStandardMaterial({
+		const mesh = new T.Mesh(
+			new T.PlaneGeometry(size,size),
+			new T.MeshStandardMaterial({
 				map: decalTexture(kind),transparent: true,opacity,roughness: 1,
 				depthWrite: false,polygonOffset: true,polygonOffsetFactor: -2,
 			}),
@@ -444,9 +500,9 @@ export function createWorld(scene) {
 	}
 	fMark(9,0.4,-12,-6.6,'accent',0.5);
 	fMark(9,0.4,12,-6.6,'siteB',0.5);
-	for (const [rx,rz] of [[-19,-9.5],[19.1,1.2],[-18.7,13.8],[7.5,-17.2]]) {
+	for (const [rx,rz] of [[-19,-9.5],[19.1,1.2],[-18.7,13.8],[7.5,-17.2],[5.5,-17.4],[-2.5,17.4],[18.9,-13]]) {
 		for (let i = 0; i < 4; i += 1) {
-			const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13 + (i % 3) * 0.07,0),rockMat);
+			const rock = new T.Mesh(new T.IcosahedronGeometry(0.13 + (i % 3) * 0.07,0),rockMat);
 			rock.position.set(rx + (i % 2) * 0.34 - 0.17,0.1,rz + Math.floor(i / 2) * 0.3 - 0.15);
 			rock.rotation.set(i * 1.3,i * 2.1,i * 0.7);
 			rock.castShadow = true;
@@ -465,18 +521,18 @@ export function createWorld(scene) {
 		dustBase[i * 3 + 2] = (hash(i * 39.425) - 0.5) * 32;
 		dustSeed[i] = i * 1.71;
 	}
-	const dustGeo = new THREE.BufferGeometry();
-	dustGeo.setAttribute('position',new THREE.BufferAttribute(dustBase.slice(),3));
-	const dust = new THREE.Points(dustGeo,new THREE.PointsMaterial({
-		map: glowTex,color: new THREE.Color('#fff6dd'),size: 0.06,transparent: true,
-		opacity: 0.16,depthWrite: false,blending: THREE.AdditiveBlending,sizeAttenuation: true,
+	const dustGeo = new T.BufferGeometry();
+	dustGeo.setAttribute('position',new T.BufferAttribute(dustBase.slice(),3));
+	const dust = new T.Points(dustGeo,new T.PointsMaterial({
+		map: glowTex,color: new T.Color('#fff6dd'),size: 0.06,transparent: true,
+		opacity: 0.16,depthWrite: false,blending: T.AdditiveBlending,sizeAttenuation: true,
 	}));
 	scene.add(dust);
 	const smokes = [];
 	for (const [sx,sz,top] of [[27,-26,17.5],[31.5,-26,21.5],[-16.6,-16.2,5.6]]) {
 		for (let i = 0; i < 5; i += 1) {
-			const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-				map: cloudTex,color: new THREE.Color('#aeb6ba'),transparent: true,opacity: 0,depthWrite: false,
+			const sprite = new T.Sprite(new T.SpriteMaterial({
+				map: cloudTex,color: new T.Color('#aeb6ba'),transparent: true,opacity: 0,depthWrite: false,
 			}));
 			scene.add(sprite);
 			smokes.push({ sprite,x: sx,z: sz,top,offset: i / 5 });
@@ -500,9 +556,9 @@ export function createWorld(scene) {
 			smoke.sprite.material.opacity = 0.22 * (1 - age) * Math.min(1,age * 5);
 		}
 	}
-	const skyLight = new THREE.HemisphereLight(new THREE.Color('#bcd6f2'),new THREE.Color('#7a6a52'),2.7);
+	const skyLight = new T.HemisphereLight(new T.Color('#bcd6f2'),new T.Color('#7a6a52'),2.7);
 	scene.add(skyLight);
-	const key = new THREE.DirectionalLight(new THREE.Color('#fff1d6'),3.6);
+	const key = new T.DirectionalLight(new T.Color('#fff1d6'),3.6);
 	key.position.set(24,34,18);
 	key.target.position.set(-2,0,-4);
 	key.castShadow = true;
@@ -515,42 +571,42 @@ export function createWorld(scene) {
 	key.shadow.bias = -0.0003;
 	key.shadow.normalBias = 0.025;
 	scene.add(key,key.target);
-	const fill = new THREE.DirectionalLight(new THREE.Color('#a8c4e0'),0.55);
+	const fill = new T.DirectionalLight(new T.Color('#a8c4e0'),0.55);
 	fill.position.set(-14,18,-12);
 	scene.add(fill);
-	const lampMid = new THREE.PointLight(new THREE.Color('#ffd2a0'),7,15,1.8);
+	const lampMid = new T.PointLight(new T.Color('#ffd2a0'),7,15,1.8);
 	lampMid.position.set(0,3.9,6.5);
 	scene.add(lampMid);
-	const lampA = new THREE.PointLight(new THREE.Color(PALETTE.accent),12,17,1.8);
+	const lampA = new T.PointLight(new T.Color(PALETTE.accent),12,17,1.8);
 	lampA.position.set(-12,4.2,-12);
 	scene.add(lampA);
-	const lampB = new THREE.PointLight(new THREE.Color(PALETTE.siteB),10,16,1.8);
+	const lampB = new T.PointLight(new T.Color(PALETTE.siteB),10,16,1.8);
 	lampB.position.set(12,4.2,-11);
 	scene.add(lampB);
 	const sites = [
-		{ name: 'A',label: 'Foundry',center: new THREE.Vector3(-12,0,-12),radius: 4.2,color: PALETTE.accent },
-		{ name: 'B',label: 'Depot',center: new THREE.Vector3(12,0,-11),radius: 4.2,color: PALETTE.siteB },
+		{ name: 'A',label: 'Foundry',center: new T.Vector3(-12,0,-12),radius: 4.2,color: PALETTE.accent },
+		{ name: 'B',label: 'Depot',center: new T.Vector3(12,0,-11),radius: 4.2,color: PALETTE.siteB },
 	];
-	const waypoints = WAYPOINTS.map(([x,z,links]) => ({ pos: new THREE.Vector3(x,0,z),links }));
+	const waypoints = WAYPOINTS.map(([x,z,links]) => ({ pos: new T.Vector3(x,0,z),links }));
 	const spawns = {
-		ember: new THREE.Vector3(0,0,15),
+		ember: new T.Vector3(0,0,15),
 		emberTeam: [
-			new THREE.Vector3(-2.6,0,15.6),
-			new THREE.Vector3(2.6,0,15.6),
-			new THREE.Vector3(-5.2,0,14.4),
-			new THREE.Vector3(5.2,0,14.4),
+			new T.Vector3(-2.6,0,15.6),
+			new T.Vector3(2.6,0,15.6),
+			new T.Vector3(-5.2,0,14.4),
+			new T.Vector3(5.2,0,14.4),
 		],
 		rust: [
-			new THREE.Vector3(-13,0,-15),
-			new THREE.Vector3(-4,0,-15),
-			new THREE.Vector3(5,0,-15),
-			new THREE.Vector3(13,0,-14),
-			new THREE.Vector3(0,0,-16),
+			new T.Vector3(-13,0,-15),
+			new T.Vector3(-4,0,-15),
+			new T.Vector3(5,0,-15),
+			new T.Vector3(13,0,-14),
+			new T.Vector3(0,0,-16),
 		],
 	};
-	const from = new THREE.Vector3();
-	const to = new THREE.Vector3();
-	const dir = new THREE.Vector3();
+	const from = new T.Vector3();
+	const to = new T.Vector3();
+	const dir = new T.Vector3();
 	return {
 		colliders,
 		shootables,

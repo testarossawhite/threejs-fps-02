@@ -1,4 +1,3 @@
-// WebAudio synth SFX — no audio files.
 export function createAudio() {
 	let ctx = null;
 	let noiseBuffer = null;

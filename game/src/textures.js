@@ -1,5 +1,5 @@
-// Procedural canvas textures: brick, asphalt, sky.
 import * as THREE from 'three';
+const T = THREE;
 function prng(seed) {
 	let a = seed >>> 0;
 	return () => {
@@ -21,10 +21,10 @@ function cvOf(w,h) {
 	return [canvas,canvas.getContext('2d')];
 }
 function toTex(canvas,repeatX = 1,repeatY = 1) {
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
-	texture.wrapS = THREE.RepeatWrapping;
-	texture.wrapT = THREE.RepeatWrapping;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
+	texture.wrapS = T.RepeatWrapping;
+	texture.wrapT = T.RepeatWrapping;
 	texture.repeat.set(repeatX,repeatY);
 	texture.anisotropy = 4;
 	return texture;
@@ -157,7 +157,7 @@ export function crateTexture() {
 	ctx.fillStyle = 'rgba(30,24,20,0.9)';
 	for (const [x,y] of [[0,0],[232,0],[0,232],[232,232]]) ctx.fillRect(x,y,24,24);
 	grime(ctx,256,256,rand,1500,6,'rgba(26,17,8,1)','rgba(215,185,130,1)');
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function containerTexture() {
 	const [canvas,ctx] = cvOf(256,256);
@@ -195,7 +195,7 @@ export function barrelTexture() {
 	}
 	R(ctx,'rgba(38,34,30,0.4)',0,0,128,7);
 	grime(ctx,128,256,rand,700,5,'rgba(40,34,28,1)','rgba(240,234,222,1)');
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function concreteTexture() {
 	const [canvas,ctx] = cvOf(256,256);
@@ -258,8 +258,8 @@ export function skyTexture() {
 	glow.addColorStop(0.25,'rgba(255,238,190,0.45)');
 	glow.addColorStop(1,'rgba(255,238,190,0)');
 	R(ctx,glow,0,0,1024,512);
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	return texture;
 }
 export function buildingTexture() {
@@ -273,21 +273,35 @@ export function buildingTexture() {
 		grad.addColorStop(1,'rgba(60,58,50,0)');
 		R(ctx,grad,x,0,30,256);
 	}
+	ctx.strokeStyle = 'rgba(52,54,50,0.35)';
+	ctx.lineWidth = 2;
+	for (let x = 0; x <= 256; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,256); ctx.stroke(); }
+	for (let y = 0; y <= 256; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(256,y); ctx.stroke(); }
 	for (let row = 0; row < 8; row += 1) {
 		for (let col = 0; col < 6; col += 1) {
 			const x = 14 + col * 40;
 			const y = 14 + row * 30;
 			const lit = rand();
-			R(ctx,lit < 0.22 ? '#cfd9d4' : lit < 0.5 ? '#5d7183' : '#33424f',x,y,24,17);
-			R(ctx,'rgba(255,255,255,0.35)',x,y,24,3);
+			R(ctx,'rgba(18,20,22,0.85)',x - 3,y - 3,30,23);
+			R(ctx,'rgba(255,255,255,0.28)',x - 3,y - 3,30,2);
+			const pane = ctx.createLinearGradient(0,y,0,y + 17);
+			const base = lit < 0.22 ? ['#d7e2dc','#aebfb8'] : lit < 0.5 ? ['#71879a','#46586a'] : ['#3d4f61','#27333f'];
+			pane.addColorStop(0,base[0]);
+			pane.addColorStop(1,base[1]);
+			R(ctx,pane,x,y,24,17);
+			R(ctx,'rgba(240,246,250,0.30)',x + 2,y + 2,9,6);
+			R(ctx,'rgba(15,17,19,0.5)',x + 11,y,2,17);
 			R(ctx,'rgba(20,22,24,0.55)',x - 2,y + 17,28,3);
-			if (rand() < 0.16) {
-				R(ctx,'#6d7276',x + 4,y + 20,13,7);
+			if (rand() < 0.2) {
+				R(ctx,'#6d7276',x + 4,y + 21,13,7);
+				R(ctx,'rgba(20,20,20,0.4)',x + 4,y + 27,13,2);
 			}
 		}
 	}
+	R(ctx,'rgba(30,28,24,0.35)',0,238,256,18);
+	R(ctx,'rgba(255,255,255,0.20)',0,236,256,2);
 	grime(ctx,256,256,rand,1500,5,'rgba(40,38,32,1)','rgba(226,228,220,1)');
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function cloudTexture() {
 	const [canvas,ctx] = cvOf(256,128);
@@ -301,8 +315,8 @@ export function cloudTexture() {
 		grad.addColorStop(1,'rgba(255,255,255,0)');
 		R(ctx,grad,x - r,y - r,r * 2,r * 2);
 	}
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	return texture;
 }
 export function gunMetalTexture(marking) {
@@ -337,7 +351,7 @@ export function gunMetalTexture(marking) {
 		ctx.fillStyle = 'rgba(226,230,236,0.5)';
 		ctx.fillText('CAL 5.56 · DW ARMORY',18,64);
 	}
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function polymerTexture() {
 	const [canvas,ctx] = cvOf(128,128);
@@ -353,7 +367,7 @@ export function polymerTexture() {
 	}
 	R(ctx,'rgba(0,0,0,0.5)',0,62,128,2);
 	grime(ctx,128,128,rand,260,2,'rgba(0,0,0,1)','rgba(200,200,200,1)');
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function camoTexture() {
 	const [canvas,ctx] = cvOf(256,256);
@@ -371,7 +385,7 @@ export function camoTexture() {
 	}
 	ctx.globalAlpha = 1;
 	grime(ctx,256,256,rand,700,3,'rgba(30,22,12,1)','rgba(230,205,160,1)');
-	return toTex(canvas,1,1);
+	return toTex(canvas);
 }
 export function decalTexture(kind) {
 	const [canvas,ctx] = cvOf(256,256);
@@ -439,8 +453,8 @@ export function decalTexture(kind) {
 	}
 	ctx.globalCompositeOperation = 'source-over';
 	ctx.globalAlpha = 1;
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	texture.anisotropy = 4;
 	return texture;
 }
@@ -482,8 +496,8 @@ export function posterTexture(title,sub,color) {
 		ctx.restore();
 	}
 	grime(ctx,256,320,rand,800,4,'rgba(40,30,16,1)','rgba(240,228,200,1)');
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	texture.anisotropy = 4;
 	return texture;
 }
@@ -494,7 +508,7 @@ export function glowTexture() {
 	grad.addColorStop(0.25,'rgba(255,255,255,0.55)');
 	grad.addColorStop(1,'rgba(255,255,255,0)');
 	R(ctx,grad,0,0,128,128);
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.colorSpace = THREE.SRGBColorSpace;
+	const texture = new T.CanvasTexture(canvas);
+	texture.colorSpace = T.SRGBColorSpace;
 	return texture;
 }

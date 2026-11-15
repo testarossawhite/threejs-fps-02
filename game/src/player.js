@@ -1,4 +1,3 @@
-// Player movement on the shared mover.
 import * as THREE from 'three';
 import { createMover } from './mover.js';
 const STAND_HEIGHT = 1.72;

@@ -25,7 +25,7 @@ export function createSpike(scene,world) {
 	group.add(body,light,beacon);
 	group.visible = false;
 	scene.add(group);
-	const spike = {
+	const K = {
 		status: 'carried',
 		site: null,
 		pos: new T.Vector3(),
@@ -34,56 +34,56 @@ export function createSpike(scene,world) {
 		beepAt: 0,
 	};
 	function reset() {
-		spike.status = 'carried';
-		spike.site = null;
-		spike.plantProgress = 0;
-		spike.timer = SPIKE_SECONDS;
+		K.status = 'carried';
+		K.site = null;
+		K.plantProgress = 0;
+		K.timer = SPIKE_SECONDS;
 		group.visible = false;
 	}
 	function plantTick(dt,playerPos,onPlanted) {
-		if (spike.status !== 'carried') return;
+		if (K.status !== 'carried') return;
 		const site = world.siteAt(playerPos.x,playerPos.z);
 		if (!site) {
-			spike.plantProgress = 0;
+			K.plantProgress = 0;
 			return;
 		}
-		spike.plantProgress += dt;
-		if (spike.plantProgress >= PLANT_SECONDS) {
-			spike.status = 'planted';
-			spike.site = site;
-			spike.pos.set(site.center.x,0.12,site.center.z);
-			spike.timer = SPIKE_SECONDS;
-			spike.beepAt = 0;
-			group.position.copy(spike.pos);
+		K.plantProgress += dt;
+		if (K.plantProgress >= PLANT_SECONDS) {
+			K.status = 'planted';
+			K.site = site;
+			K.pos.set(site.center.x,0.12,site.center.z);
+			K.timer = SPIKE_SECONDS;
+			K.beepAt = 0;
+			group.position.copy(K.pos);
 			group.visible = true;
 			onPlanted(site);
 		}
 	}
 	function step(dt,ctx) {
-		if (spike.status !== 'planted') return;
-		spike.timer -= dt;
-		const interval = spike.timer > 15 ? 1 : spike.timer > 7 ? 0.5 : 0.25;
-		spike.beepAt += dt;
-		const on = (spike.beepAt % interval) < interval * 0.4;
+		if (K.status !== 'planted') return;
+		K.timer -= dt;
+		const interval = K.timer > 15 ? 1 : K.timer > 7 ? 0.5 : 0.25;
+		K.beepAt += dt;
+		const on = (K.beepAt % interval) < interval * 0.4;
 		light.visible = on;
 		beacon.material.opacity = on ? 0.22 : 0.08;
-		if (spike.beepAt >= interval && ctx.onBeep) {
+		if (K.beepAt >= interval && ctx.onBeep) {
 			ctx.onBeep();
-			spike.beepAt = 0;
+			K.beepAt = 0;
 		}
-		if (spike.timer <= 0) {
-			spike.status = 'exploded';
+		if (K.timer <= 0) {
+			K.status = 'exploded';
 			group.visible = false;
-			ctx.onExploded(spike.site);
+			ctx.onExploded(K.site);
 		}
 	}
 	return {
-		state: spike,
+		state: K,
 		reset,
 		plantTick,
 		step,
 		defused() {
-			spike.status = 'defused';
+			K.status = 'defused';
 			group.visible = false;
 		},
 	};

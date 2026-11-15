@@ -37,7 +37,7 @@ export function createBots(scene,world,random) {
 		group.position.copy(spawn);
 		scene.add(group);
 		const mover = createMover(world.colliders,{ x: spawn.x,z: spawn.z,radius: 0.34,height: 1.72 });
-		const bot = {
+		const b = {
 			id: i,
 			group,
 			torso,
@@ -51,8 +51,8 @@ export function createBots(scene,world,random) {
 			goalSite: i % 2 === 0 ? 'A' : 'B',
 			route: [],
 			routeIndex: 0,
-			holdPoint: new T.Vector3(),
-			lastSeen: new T.Vector3(),
+			hP: new T.Vector3(),
+			lS: new T.Vector3(),
 			lastSeenAt: -99,
 			target: null,
 			reactionAt: 0,
@@ -65,193 +65,193 @@ export function createBots(scene,world,random) {
 			gun: BOT_GUNS[i % BOT_GUNS.length],
 			blindUntil: 0,
 			util: null,
-			utilUsed: false,
+			uu: false,
 			scanPhase: random() * P * 2,
 			fall: 0,
 			flinch: 0,
 			deadTime: 0,
 			walkPhase: random() * 6,
 		};
-		torso.userData.bot = bot;
-		head.userData.bot = bot;
+		torso.userData.bot = b;
+		head.userData.bot = b;
 		hitMeshes.push(torso,head);
-		items.push(bot);
+		items.push(b);
 	}
-	function setRoute(bot,targetIndex) {
-		const from = world.nearestWaypoint(bot.mover.position.x,bot.mover.position.z);
-		bot.route = world.route(from,targetIndex);
-		bot.routeIndex = 0;
-		bot.state = 'route';
+	function setRoute(b,targetIndex) {
+		const from = world.nearestWaypoint(b.mover.position.x,b.mover.position.z);
+		b.route = world.route(from,targetIndex);
+		b.routeIndex = 0;
+		b.state = 'route';
 	}
-	function siteWaypoint(siteName) {
-		return siteName === 'A' ? 12 : 14;
+	function siteWaypoint(sN) {
+		return sN === 'A' ? 12 : 14;
 	}
 	function assignGoals() {
-		for (const bot of items) {
-			bot.goalSite = bot.id % 2 === 0 ? 'A' : 'B';
-			const site = world.sites.find((s) => s.name === bot.goalSite);
-			bot.holdPoint.set(
+		for (const b of items) {
+			b.goalSite = b.id % 2 === 0 ? 'A' : 'B';
+			const site = world.sites.find((s) => s.name === b.goalSite);
+			b.hP.set(
 				site.center.x + range(random,-2.5,2.5),
 				0,
 				site.center.z + range(random,-2.5,2.5),
 			);
-			setRoute(bot,siteWaypoint(bot.goalSite));
+			setRoute(b,siteWaypoint(b.goalSite));
 		}
 	}
 	function damage(mesh,amount) {
-		const bot = mesh.userData.bot;
-		if (!bot || !bot.alive) return null;
-		bot.flinch = 1;
-		bot.health -= amount;
-		if (bot.health > 0) return null;
-		bot.alive = false;
-		bot.state = 'dead';
-		bot.fall = 0;
-		bot.defuseProgress = 0;
-		return bot;
+		const b = mesh.userData.bot;
+		if (!b || !b.alive) return null;
+		b.flinch = 1;
+		b.health -= amount;
+		if (b.health > 0) return null;
+		b.alive = false;
+		b.state = 'dead';
+		b.fall = 0;
+		b.defuseProgress = 0;
+		return b;
 	}
 	function step(dt,ctx) {
-		for (const bot of items) {
-			if (!bot.alive) {
-				bot.fall = Math.min(1,bot.fall + dt / 0.4);
-				bot.deadTime += dt;
+		for (const b of items) {
+			if (!b.alive) {
+				b.fall = Math.min(1,b.fall + dt / 0.4);
+				b.deadTime += dt;
 				continue;
 			}
-			bot.flinch = Math.max(0,bot.flinch - dt * 4);
-			if (ctx.time < bot.blindUntil) {
-				bot.yaw += Math.sin(ctx.time * 1.3 + bot.scanPhase) * dt * 1.4;
+			b.flinch = Math.max(0,b.flinch - dt * 4);
+			if (ctx.time < b.blindUntil) {
+				b.yaw += Math.sin(ctx.time * 1.3 + b.scanPhase) * dt * 1.4;
 				continue;
 			}
-			const seen = pickVisible(world,ctx.smokeBlocks,bot.mover.position,bot.yaw,ctx.targets,SEE_DISTANCE);
+			const seen = pickVisible(world,ctx.smokeBlocks,b.mover.position,b.yaw,ctx.targets,SEE_DISTANCE);
 			if (seen) {
-				bot.target = seen;
-				bot.lastSeen.copy(seen.pos);
-				bot.lastSeenAt = ctx.time;
-				if (bot.state !== 'engage') {
-					bot.state = 'engage';
-					bot.reactionAt = ctx.time + range(random,0.35,0.65);
-					bot.burstLeft = 0;
-					bot.pauseUntil = 0;
+				b.target = seen;
+				b.lS.copy(seen.pos);
+				b.lastSeenAt = ctx.time;
+				if (b.state !== 'engage') {
+					b.state = 'engage';
+					b.reactionAt = ctx.time + range(random,0.35,0.65);
+					b.burstLeft = 0;
+					b.pauseUntil = 0;
 				}
 			}
-			if (ctx.spikePlanted && bot.state !== 'engage' && bot.state !== 'defuse') {
+			if (ctx.spikePlanted && b.state !== 'engage' && b.state !== 'defuse') {
 				const site = world.sites.find((s) => s.name === ctx.spikeSite);
-				setRoute(bot,siteWaypoint(ctx.spikeSite));
-				bot.state = 'route';
-				bot.goalSite = ctx.spikeSite;
-				bot.holdPoint.copy(site.center);
+				setRoute(b,siteWaypoint(ctx.spikeSite));
+				b.state = 'route';
+				b.goalSite = ctx.spikeSite;
+				b.hP.copy(site.center);
 			}
-			if (bot.state === 'engage') {
-				const target = bot.target;
+			if (b.state === 'engage') {
+				const target = b.target;
 				if (!target || !target.alive) {
-					bot.state = 'investigate';
-					bot.investigateAt = bot.lastSeen.clone();
-					bot.investigateUntil = ctx.time + 3;
-					setRoute(bot,world.nearestWaypoint(bot.lastSeen.x,bot.lastSeen.z));
+					b.state = 'investigate';
+					b.investigateAt = b.lS.clone();
+					b.investigateUntil = ctx.time + 3;
+					setRoute(b,world.nearestWaypoint(b.lS.x,b.lS.z));
 					continue;
 				}
-				if (!bot.utilUsed && bot.util === 'flash' && ctx.throwUtil) {
-					const dx = target.pos.x - bot.mover.position.x;
-					const dz = target.pos.z - bot.mover.position.z;
+				if (!b.uu && b.util === 'flash' && ctx.throwUtil) {
+					const dx = target.pos.x - b.mover.position.x;
+					const dz = target.pos.z - b.mover.position.z;
 					if (dx * dx + dz * dz > 49) {
-						bot.utilUsed = true;
-						bot.pauseUntil = ctx.time + 0.9;
-						ctx.throwUtil(bot,'flash',null);
+						b.uu = true;
+						b.pauseUntil = ctx.time + 0.9;
+						ctx.throwUtil(b,'flash',null);
 					}
 				}
-				engageMove(bot,target.pos,dt,ctx.time,random,BOT_SPEED,BOT_ACCEL,BOT_FRICTION,() => fireAt(bot,ctx));
-				if (!seen && ctx.time - bot.lastSeenAt > 2.5) {
-					bot.state = 'investigate';
-					bot.investigateAt = bot.lastSeen.clone();
-					bot.investigateUntil = ctx.time + 3;
-					setRoute(bot,world.nearestWaypoint(bot.lastSeen.x,bot.lastSeen.z));
+				engageMove(b,target.pos,dt,ctx.time,random,BOT_SPEED,BOT_ACCEL,BOT_FRICTION,() => fireAt(b,ctx));
+				if (!seen && ctx.time - b.lastSeenAt > 2.5) {
+					b.state = 'investigate';
+					b.investigateAt = b.lS.clone();
+					b.investigateUntil = ctx.time + 3;
+					setRoute(b,world.nearestWaypoint(b.lS.x,b.lS.z));
 				}
 				continue;
 			}
-			if (bot.state === 'defuse') {
-				const spikePos = ctx.spikePos;
-				const arrived = moveToward(bot,spikePos,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
+			if (b.state === 'defuse') {
+				const sP = ctx.sP;
+				const arrived = moveToward(b,sP,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
 				if (arrived) {
-					bot.defuseProgress += dt;
-					faceYaw(bot,Math.atan2(-(spikePos.x - bot.mover.position.x),-(spikePos.z - bot.mover.position.z)),dt,8);
-					if (bot.defuseProgress >= 5) ctx.onDefused(bot);
+					b.defuseProgress += dt;
+					faceYaw(b,Math.atan2(-(sP.x - b.mover.position.x),-(sP.z - b.mover.position.z)),dt,8);
+					if (b.defuseProgress >= 5) ctx.onDefused(b);
 				}
 				continue;
 			}
-			if (bot.state === 'route') {
-				if (!bot.utilUsed && bot.util === 'smoke' && ctx.spikePlanted && ctx.throwUtil) {
-					const dx = ctx.spikePos.x - bot.mover.position.x;
-					const dz = ctx.spikePos.z - bot.mover.position.z;
+			if (b.state === 'route') {
+				if (!b.uu && b.util === 'smoke' && ctx.spikePlanted && ctx.throwUtil) {
+					const dx = ctx.sP.x - b.mover.position.x;
+					const dz = ctx.sP.z - b.mover.position.z;
 					if (dx * dx + dz * dz < 100) {
-						bot.utilUsed = true;
-						ctx.throwUtil(bot,'smoke',ctx.spikePos);
+						b.uu = true;
+						ctx.throwUtil(b,'smoke',ctx.sP);
 					}
 				}
-				const target = bot.route[bot.routeIndex];
+				const target = b.route[b.routeIndex];
 				if (target === undefined) {
-					bot.state = 'hold';
+					b.state = 'hold';
 					continue;
 				}
 				const wp = world.waypoints[target];
-				const arrived = moveToward(bot,wp.pos,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
+				const arrived = moveToward(b,wp.pos,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
 				if (arrived) {
-					bot.routeIndex++;
-					if (bot.routeIndex >= bot.route.length) {
-						if (ctx.spikePlanted && bot.goalSite === ctx.spikeSite) {
-							bot.state = 'defuse';
-							bot.defuseProgress = 0;
+					b.routeIndex++;
+					if (b.routeIndex >= b.route.length) {
+						if (ctx.spikePlanted && b.goalSite === ctx.spikeSite) {
+							b.state = 'defuse';
+							b.defuseProgress = 0;
 						} else {
-							bot.state = 'hold';
+							b.state = 'hold';
 						}
 					}
 				}
 				continue;
 			}
-			if (bot.state === 'investigate') {
-				if (bot.investigateAt) {
-					const arrived = moveToward(bot,bot.investigateAt,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
-					if (arrived || ctx.time > bot.investigateUntil) {
-						bot.state = 'hold';
-						bot.investigateAt = null;
+			if (b.state === 'investigate') {
+				if (b.investigateAt) {
+					const arrived = moveToward(b,b.investigateAt,dt,BOT_SPEED,BOT_ACCEL,BOT_FRICTION);
+					if (arrived || ctx.time > b.investigateUntil) {
+						b.state = 'hold';
+						b.investigateAt = null;
 					}
 				} else {
-					bot.state = 'hold';
+					b.state = 'hold';
 				}
 				continue;
 			}
-			bot.yaw += Math.sin(ctx.time * 0.5 + bot.scanPhase) * dt * 0.9;
+			b.yaw += Math.sin(ctx.time * 0.5 + b.scanPhase) * dt * 0.9;
 			if (ctx.noise && ctx.time - ctx.noise.time < 1.2) {
-				const dx = ctx.noise.pos.x - bot.mover.position.x;
-				const dz = ctx.noise.pos.z - bot.mover.position.z;
+				const dx = ctx.noise.pos.x - b.mover.position.x;
+				const dz = ctx.noise.pos.z - b.mover.position.z;
 				if (dx * dx + dz * dz < HEAR_DISTANCE * HEAR_DISTANCE) {
-					bot.state = 'investigate';
-					bot.investigateAt = ctx.noise.pos.clone();
-					bot.investigateUntil = ctx.time + 3;
-					setRoute(bot,world.nearestWaypoint(ctx.noise.pos.x,ctx.noise.pos.z));
+					b.state = 'investigate';
+					b.investigateAt = ctx.noise.pos.clone();
+					b.investigateUntil = ctx.time + 3;
+					setRoute(b,world.nearestWaypoint(ctx.noise.pos.x,ctx.noise.pos.z));
 				}
 			}
 		}
-		for (const bot of items) {
-			bot.group.position.x = bot.mover.position.x;
-			bot.group.position.z = bot.mover.position.z;
-			bot.group.rotation.y = bot.yaw;
-			animateSoldier(bot.soldier,{
+		for (const b of items) {
+			b.group.position.x = b.mover.position.x;
+			b.group.position.z = b.mover.position.z;
+			b.group.rotation.y = b.yaw;
+			animateSoldier(b.soldier,{
 				dt,
-				phase: bot.walkPhase,
-				moving: bot.alive && bot.state !== 'hold',
-				flinch: bot.flinch,
-				fall: bot.fall,
-				fade: Math.max(0,Math.min(1,(bot.deadTime - 1) / 1.5)),
+				phase: b.walkPhase,
+				moving: b.alive && b.state !== 'hold',
+				flinch: b.flinch,
+				fall: b.fall,
+				fade: Math.max(0,Math.min(1,(b.deadTime - 1) / 1.5)),
 			});
 		}
 	}
-	function fireAt(bot,ctx) {
-		const target = bot.target;
+	function fireAt(b,ctx) {
+		const target = b.target;
 		if (!target) return;
 		_muzzle.set(
-			bot.mover.position.x + Math.sin(bot.yaw) * -0.2,
+			b.mover.position.x + Math.sin(b.yaw) * -0.2,
 			1.35,
-			bot.mover.position.z + Math.cos(bot.yaw) * -0.2,
+			b.mover.position.z + Math.cos(b.yaw) * -0.2,
 		);
 		_aim.copy(target.pos);
 		_aim.y = target.pos.y + 1.25;
@@ -266,44 +266,44 @@ export function createBots(scene,world,random) {
 		const hit = raycaster.intersectObjects(ctx.raycastTargets,false)[0];
 		let end = _far.copy(_muzzle).addScaledVector(_dir,60);
 		if (!hit) {
-			ctx.onBotShot(bot,_muzzle,end,0,false);
+			ctx.onBotShot(b,_muzzle,end,0,false);
 			return;
 		}
 		end = hit.point;
 		if (hit.object === ctx.playerHitbox) {
 			const headshot = hit.point.y > target.pos.y + 1.45;
-			ctx.onBotShot(bot,_muzzle,end,Math.round((headshot ? HEAD_DAMAGE : DAMAGE) * bot.gun.mul),headshot);
+			ctx.onBotShot(b,_muzzle,end,Math.round((headshot ? HEAD_DAMAGE : DAMAGE) * b.gun.mul),headshot);
 		} else if (hit.object.userData.ally) {
 			const headshot = hit.object.userData.part === 'head';
-			ctx.onBotShotAlly(bot,_muzzle,end,hit.object.userData.ally,Math.round((headshot ? HEAD_DAMAGE : DAMAGE) * bot.gun.mul),headshot);
+			ctx.onBotShotAlly(b,_muzzle,end,hit.object.userData.ally,Math.round((headshot ? HEAD_DAMAGE : DAMAGE) * b.gun.mul),headshot);
 		} else {
-			ctx.onBotShot(bot,_muzzle,end,0,false);
+			ctx.onBotShot(b,_muzzle,end,0,false);
 		}
 	}
 	function reset() {
 		for (let i = 0; i < items.length; i++) {
-			const bot = items[i];
+			const b = items[i];
 			const spawn = world.spawns.rust[i];
-			bot.mover.position.set(spawn.x,0,spawn.z);
-			bot.mover.velocity.set(0,0,0);
-			bot.group.position.copy(spawn);
-			bot.group.rotation.set(0,P,0);
-			bot.group.position.y = 0;
-			bot.health = HEALTH;
-			bot.alive = true;
-			bot.yaw = P;
-			bot.fall = 0;
-			bot.flinch = 0;
-			bot.deadTime = 0;
-			bot.soldier.resetVisual();
-			bot.target = null;
-			bot.defuseProgress = 0;
-			bot.lastSeenAt = -99;
-			bot.burstLeft = 0;
-			bot.pauseUntil = 0;
-			bot.blindUntil = 0;
-			bot.utilUsed = false;
-			bot.util = random() < 0.35 ? 'flash' : random() < 0.3 ? 'smoke' : null;
+			b.mover.position.set(spawn.x,0,spawn.z);
+			b.mover.velocity.set(0,0,0);
+			b.group.position.copy(spawn);
+			b.group.rotation.set(0,P,0);
+			b.group.position.y = 0;
+			b.health = HEALTH;
+			b.alive = true;
+			b.yaw = P;
+			b.fall = 0;
+			b.flinch = 0;
+			b.deadTime = 0;
+			b.soldier.resetVisual();
+			b.target = null;
+			b.defuseProgress = 0;
+			b.lastSeenAt = -99;
+			b.burstLeft = 0;
+			b.pauseUntil = 0;
+			b.blindUntil = 0;
+			b.uu = false;
+			b.util = random() < 0.35 ? 'flash' : random() < 0.3 ? 'smoke' : null;
 		}
 		assignGoals();
 	}
@@ -314,11 +314,11 @@ export function createBots(scene,world,random) {
 		damage,
 		reset,
 		aliveCount() {
-			return items.filter((bot) => bot.alive).length;
+			return items.filter((b) => b.alive).length;
 		},
 		aimPoint(index) {
-			const bot = items[index % items.length];
-			return new T.Vector3(bot.mover.position.x,1.25,bot.mover.position.z);
+			const b = items[index % items.length];
+			return new T.Vector3(b.mover.position.x,1.25,b.mover.position.z);
 		},
 	};
 }

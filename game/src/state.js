@@ -34,10 +34,10 @@ export const REWARDS = {
 export function createState() {
 	return {
 		phase: PHASES.MENU,
-		phaseTime: 0,
+		pT: 0,
 		round: 1,
-		roundsWon: 0,
-		roundsLost: 0,
+		rW: 0,
+		rL: 0,
 		money: 800,
 		kills: 0,
 		deaths: 0,
@@ -47,7 +47,7 @@ export function createState() {
 		roundReason: '',
 		matchWinner: '',
 		roundHistory: [],
-		loadout: { primary: 'pistol',frags: 0,smokes: 0,flashes: 0,armour: false,helmet: false },
+		lo: { primary: 'pistol',frags: 0,smokes: 0,flashes: 0,armour: false,helmet: false },
 		spike: 'carried',
 		spikeSite: '',
 		spikeTimer: SPIKE_SECONDS,
@@ -57,15 +57,15 @@ export function createState() {
 }
 export function resetMatch(state) {
 	state.round = 1;
-	state.roundsWon = 0;
-	state.roundsLost = 0;
+	state.rW = 0;
+	state.rL = 0;
 	state.money = 800;
 	state.kills = 0;
 	state.deaths = 0;
 	state.plants = 0;
 	state.defusesStopped = 0;
 	state.roundHistory = [];
-	state.loadout = { primary: 'pistol',frags: 0,smokes: 0,flashes: 0,armour: false,helmet: false };
+	state.lo = { primary: 'pistol',frags: 0,smokes: 0,flashes: 0,armour: false,helmet: false };
 	state.spike = 'carried';
 	state.spikeSite = '';
 }

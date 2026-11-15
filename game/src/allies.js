@@ -32,7 +32,7 @@ export function createAllies(scene,world,random) {
 		group.position.copy(spawn);
 		scene.add(group);
 		const mover = createMover(world.colliders,{ x: spawn.x,z: spawn.z,radius: 0.34,height: 1.72 });
-		const ally = {
+		const a = {
 			id: i,
 			name: `Ember-${i + 2}`,
 			gunShort: ALLY_GUNS[i % ALLY_GUNS.length],
@@ -46,12 +46,12 @@ export function createAllies(scene,world,random) {
 			alive: true,
 			yaw: 0,
 			state: 'advance',
-			planSite: 'A',
+			pS: 'A',
 			route: [],
 			routeIndex: 0,
-			holdPoint: new T.Vector3(),
+			hP: new T.Vector3(),
 			target: null,
-			lastSeen: new T.Vector3(),
+			lS: new T.Vector3(),
 			lastSeenAt: -99,
 			contacted: false,
 			reactionAt: 0,
@@ -66,135 +66,135 @@ export function createAllies(scene,world,random) {
 			deadTime: 0,
 			walkPhase: random() * 6,
 		};
-		torso.userData.ally = ally;
-		head.userData.ally = ally;
+		torso.userData.ally = a;
+		head.userData.ally = a;
 		hitMeshes.push(torso,head);
-		items.push(ally);
+		items.push(a);
 	}
-	function siteWaypoint(siteName) {
-		return siteName === 'A' ? 12 : 14;
+	function siteWaypoint(sN) {
+		return sN === 'A' ? 12 : 14;
 	}
-	function setRoute(ally,targetIndex) {
-		const from = world.nearestWaypoint(ally.mover.position.x,ally.mover.position.z);
-		ally.route = world.route(from,targetIndex);
-		ally.routeIndex = 0;
-		ally.state = 'advance';
+	function setRoute(a,targetIndex) {
+		const from = world.nearestWaypoint(a.mover.position.x,a.mover.position.z);
+		a.route = world.route(from,targetIndex);
+		a.routeIndex = 0;
+		a.state = 'advance';
 	}
-	function planRoute(ally,siteName) {
-		ally.planSite = siteName;
-		const site = world.sites.find((s) => s.name === siteName);
-		const [ox,oz] = HOLD_OFFSETS[ally.id % HOLD_OFFSETS.length];
-		ally.holdPoint.set(site.center.x + ox,0,site.center.z + oz);
-		setRoute(ally,siteWaypoint(siteName));
+	function planRoute(a,sN) {
+		a.pS = sN;
+		const site = world.sites.find((s) => s.name === sN);
+		const [ox,oz] = HOLD_OFFSETS[a.id % HOLD_OFFSETS.length];
+		a.hP.set(site.center.x + ox,0,site.center.z + oz);
+		setRoute(a,siteWaypoint(sN));
 	}
-	function damage(ally,amount) {
-		if (!ally || !ally.alive) return false;
-		ally.flinch = 1;
-		ally.health -= amount;
-		if (ally.health > 0) return false;
-		ally.alive = false;
-		ally.state = 'dead';
-		ally.fall = 0;
+	function damage(a,amount) {
+		if (!a || !a.alive) return false;
+		a.flinch = 1;
+		a.health -= amount;
+		if (a.health > 0) return false;
+		a.alive = false;
+		a.state = 'dead';
+		a.fall = 0;
 		return true;
 	}
 	function step(dt,ctx) {
-		for (const ally of items) {
-			if (!ally.alive) {
-				ally.fall = Math.min(1,ally.fall + dt / 0.4);
-				ally.deadTime += dt;
+		for (const a of items) {
+			if (!a.alive) {
+				a.fall = Math.min(1,a.fall + dt / 0.4);
+				a.deadTime += dt;
 				continue;
 			}
-			ally.flinch = Math.max(0,ally.flinch - dt * 4);
-			if (ctx.time < ally.blindUntil) {
-				ally.yaw += Math.sin(ctx.time * 1.2 + ally.scanPhase) * dt * 1.2;
+			a.flinch = Math.max(0,a.flinch - dt * 4);
+			if (ctx.time < a.blindUntil) {
+				a.yaw += Math.sin(ctx.time * 1.2 + a.scanPhase) * dt * 1.2;
 				continue;
 			}
-			const wantedSite = ctx.spikePlanted ? ctx.spikeSite : ctx.planSite;
-			if (wantedSite && ally.planSite !== wantedSite && ally.state !== 'engage') {
-				planRoute(ally,wantedSite);
+			const wantedSite = ctx.spikePlanted ? ctx.spikeSite : ctx.pS;
+			if (wantedSite && a.pS !== wantedSite && a.state !== 'engage') {
+				planRoute(a,wantedSite);
 			}
-			const seen = pickVisible(world,ctx.smokeBlocks,ally.mover.position,ally.yaw,ctx.enemyViews,SEE_DISTANCE);
+			const seen = pickVisible(world,ctx.smokeBlocks,a.mover.position,a.yaw,ctx.enemyViews,SEE_DISTANCE);
 			if (seen) {
-				ally.target = seen.ref;
-				ally.lastSeen.copy(seen.pos);
-				ally.lastSeenAt = ctx.time;
-				if (ally.state !== 'engage') {
-					ally.state = 'engage';
-					ally.reactionAt = ctx.time + range(random,0.35,0.65);
-					ally.burstLeft = 0;
-					ally.pauseUntil = 0;
-					if (!ally.contacted) {
-						ally.contacted = true;
-						ctx.onEvent('contact',ally);
+				a.target = seen.ref;
+				a.lS.copy(seen.pos);
+				a.lastSeenAt = ctx.time;
+				if (a.state !== 'engage') {
+					a.state = 'engage';
+					a.reactionAt = ctx.time + range(random,0.35,0.65);
+					a.burstLeft = 0;
+					a.pauseUntil = 0;
+					if (!a.contacted) {
+						a.contacted = true;
+						ctx.onEvent('contact',a);
 					}
 				}
 			}
-			if (ally.state === 'engage') {
-				const target = ally.target;
+			if (a.state === 'engage') {
+				const target = a.target;
 				if (!target || !target.alive) {
-					ally.state = 'advance';
-					setRoute(ally,siteWaypoint(ally.planSite));
+					a.state = 'advance';
+					setRoute(a,siteWaypoint(a.pS));
 					continue;
 				}
-				engageMove(ally,target.mover.position,dt,ctx.time,random,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION,() => fireAt(ally,ctx));
-				if (!seen && ctx.time - ally.lastSeenAt > 2.5) {
-					ally.state = 'advance';
-					setRoute(ally,siteWaypoint(ally.planSite));
+				engageMove(a,target.mover.position,dt,ctx.time,random,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION,() => fireAt(a,ctx));
+				if (!seen && ctx.time - a.lastSeenAt > 2.5) {
+					a.state = 'advance';
+					setRoute(a,siteWaypoint(a.pS));
 				}
 				continue;
 			}
-			if (ctx.planter === ally && !ctx.spikePlanted) {
-				const site = world.siteAt(ally.mover.position.x,ally.mover.position.z);
+			if (ctx.planter === a && !ctx.spikePlanted) {
+				const site = world.siteAt(a.mover.position.x,a.mover.position.z);
 				if (site) {
-					ally.state = 'plant';
-					ally.yaw += Math.sin(ctx.time * 0.6 + ally.scanPhase) * dt * 0.7;
+					a.state = 'plant';
+					a.yaw += Math.sin(ctx.time * 0.6 + a.scanPhase) * dt * 0.7;
 					continue;
 				}
 			}
-			if (ally.state === 'plant') {
-				ally.state = 'advance';
-				setRoute(ally,siteWaypoint(ally.planSite));
+			if (a.state === 'plant') {
+				a.state = 'advance';
+				setRoute(a,siteWaypoint(a.pS));
 			}
-			if (ally.state === 'advance') {
-				const target = ally.route[ally.routeIndex];
+			if (a.state === 'advance') {
+				const target = a.route[a.routeIndex];
 				if (target === undefined) {
-					const arrived = moveToward(ally,ally.holdPoint,dt,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION);
-					if (arrived) ally.state = 'hold';
+					const arrived = moveToward(a,a.hP,dt,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION);
+					if (arrived) a.state = 'hold';
 					continue;
 				}
 				const wp = world.waypoints[target];
-				const arrived = moveToward(ally,wp.pos,dt,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION);
-				if (arrived) ally.routeIndex++;
+				const arrived = moveToward(a,wp.pos,dt,ALLY_SPEED,ALLY_ACCEL,ALLY_FRICTION);
+				if (arrived) a.routeIndex++;
 				continue;
 			}
-			ally.yaw += Math.sin(ctx.time * 0.5 + ally.scanPhase) * dt * 0.9;
-			const dx = ally.holdPoint.x - ally.mover.position.x;
-			const dz = ally.holdPoint.z - ally.mover.position.z;
+			a.yaw += Math.sin(ctx.time * 0.5 + a.scanPhase) * dt * 0.9;
+			const dx = a.hP.x - a.mover.position.x;
+			const dz = a.hP.z - a.mover.position.z;
 			if (dx * dx + dz * dz > 4) {
-				moveToward(ally,ally.holdPoint,dt,ALLY_SPEED * 0.6,ALLY_ACCEL,ALLY_FRICTION);
+				moveToward(a,a.hP,dt,ALLY_SPEED * 0.6,ALLY_ACCEL,ALLY_FRICTION);
 			}
 		}
-		for (const ally of items) {
-			ally.group.position.x = ally.mover.position.x;
-			ally.group.position.z = ally.mover.position.z;
-			ally.group.rotation.y = ally.yaw;
-			animateSoldier(ally.soldier,{
+		for (const a of items) {
+			a.group.position.x = a.mover.position.x;
+			a.group.position.z = a.mover.position.z;
+			a.group.rotation.y = a.yaw;
+			animateSoldier(a.soldier,{
 				dt,
-				phase: ally.walkPhase,
-				moving: ally.alive && (ally.state === 'advance' || ally.state === 'engage'),
-				flinch: ally.flinch,
-				fall: ally.fall,
-				fade: Math.max(0,Math.min(1,(ally.deadTime - 1) / 1.5)),
+				phase: a.walkPhase,
+				moving: a.alive && (a.state === 'advance' || a.state === 'engage'),
+				flinch: a.flinch,
+				fall: a.fall,
+				fade: Math.max(0,Math.min(1,(a.deadTime - 1) / 1.5)),
 			});
 		}
 	}
-	function fireAt(ally,ctx) {
-		const target = ally.target;
+	function fireAt(a,ctx) {
+		const target = a.target;
 		if (!target) return;
 		_muzzle.set(
-			ally.mover.position.x + Math.sin(ally.yaw) * -0.2,
+			a.mover.position.x + Math.sin(a.yaw) * -0.2,
 			1.35,
-			ally.mover.position.z + Math.cos(ally.yaw) * -0.2,
+			a.mover.position.z + Math.cos(a.yaw) * -0.2,
 		);
 		_aim.copy(target.mover.position);
 		_aim.y = target.mover.position.y + 1.25;
@@ -217,30 +217,30 @@ export function createAllies(scene,world,random) {
 			headshot = hit.object.userData.part === 'head';
 			damageDone = headshot ? HEAD_DAMAGE : DAMAGE;
 		}
-		ctx.onAllyShot(ally,_muzzle,end,hitMesh,damageDone,headshot);
+		ctx.onAllyShot(a,_muzzle,end,hitMesh,damageDone,headshot);
 	}
-	function reset(planSite) {
+	function reset(pS) {
 		for (let i = 0; i < items.length; i++) {
-			const ally = items[i];
+			const a = items[i];
 			const spawn = world.spawns.emberTeam[i];
-			ally.mover.position.set(spawn.x,0,spawn.z);
-			ally.mover.velocity.set(0,0,0);
-			ally.group.position.copy(spawn);
-			ally.group.rotation.set(0,0,0);
-			ally.group.position.y = 0;
-			ally.health = HEALTH;
-			ally.alive = true;
-			ally.yaw = 0;
-			ally.fall = 0;
-			ally.flinch = 0;
-			ally.deadTime = 0;
-			ally.soldier.resetVisual();
-			ally.target = null;
-			ally.contacted = false;
-			ally.burstLeft = 0;
-			ally.pauseUntil = 0;
-			ally.blindUntil = 0;
-			planRoute(ally,planSite);
+			a.mover.position.set(spawn.x,0,spawn.z);
+			a.mover.velocity.set(0,0,0);
+			a.group.position.copy(spawn);
+			a.group.rotation.set(0,0,0);
+			a.group.position.y = 0;
+			a.health = HEALTH;
+			a.alive = true;
+			a.yaw = 0;
+			a.fall = 0;
+			a.flinch = 0;
+			a.deadTime = 0;
+			a.soldier.resetVisual();
+			a.target = null;
+			a.contacted = false;
+			a.burstLeft = 0;
+			a.pauseUntil = 0;
+			a.blindUntil = 0;
+			planRoute(a,pS);
 		}
 	}
 	return {
@@ -250,14 +250,14 @@ export function createAllies(scene,world,random) {
 		damage,
 		reset,
 		aliveCount() {
-			return items.filter((ally) => ally.alive).length;
+			return items.filter((a) => a.alive).length;
 		},
 		firstAlive() {
-			return items.find((ally) => ally.alive) ?? null;
+			return items.find((a) => a.alive) ?? null;
 		},
 		aimPoint(index) {
-			const ally = items[index % items.length];
-			return new T.Vector3(ally.mover.position.x,1.25,ally.mover.position.z);
+			const a = items[index % items.length];
+			return new T.Vector3(a.mover.position.x,1.25,a.mover.position.z);
 		},
 	};
 }

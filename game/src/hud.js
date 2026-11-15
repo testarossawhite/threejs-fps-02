@@ -15,7 +15,7 @@ const BUY_ITEMS = [
 ];
 export function createHud() {
 	const $ = (id) => document.getElementById(id);
-	const [overlay,title,copy,play,buyList,buyMoney,ammoMag,ammoReserve,weaponName,grenadeInfo,healthFill,healthValue,moneyValue,timerValue,scoreEmber,scoreRust,roundValue,spikeStatus,killfeed,hitmarker,crosshair,damageVignette,plantBar,plantFill,plantLabel,kills,dmgdir,flashblind,scoreboard] = [
+	const [ov,title,copy,play,bL,buyMoney,ammoMag,ammoReserve,weaponName,grenadeInfo,healthFill,healthValue,moneyValue,timerValue,scoreEmber,scoreRust,roundValue,spikeStatus,kf,hm,crosshair,damageVignette,plantBar,plantFill,plantLabel,kills,dmgdir,flashblind,sb] = [
 		'overlay','overlay-title','overlay-copy','play','buy-list','buy-money','ammo-mag','ammo-reserve','weapon-name','grenade-info','health-fill','health-value','money-value','timer-value','score-ember','score-rust','round-value','spike-status','killfeed','hitmarker','crosshair','damage-vignette','plant-bar','plant-fill','plant-label','kills','dmgdir','flashblind','scoreboard',
 	].map($);
 	const mapCtx = $('minimap').getContext('2d');
@@ -26,7 +26,7 @@ export function createHud() {
 	let playHandler = null;
 	let buyHandler = null;
 	play.addEventListener('click',() => { if (playHandler) playHandler(); });
-	buyList.addEventListener('click',(event) => {
+	bL.addEventListener('click',(event) => {
 		const button = event.target.closest('[data-buy]');
 		if (button && buyHandler) buyHandler(button.dataset.buy);
 	});
@@ -87,12 +87,12 @@ export function createHud() {
 			crosshair.style.setProperty('--gap',`${px.toFixed(1)}px`);
 		},
 		hitMarker(killed,holdMs = 90) {
-			hitmarker.classList.add('on');
-			hitmarker.style.transform = killed ? 'translate(-50%, -50%) rotate(45deg) scale(1.25)' : '';
+			hm.classList.add('on');
+			hm.style.transform = killed ? 'translate(-50%, -50%) rotate(45deg) scale(1.25)' : '';
 			clearTimeout(hitTimer);
 			hitTimer = setTimeout(() => {
-				hitmarker.classList.remove('on');
-				hitmarker.style.transform = '';
+				hm.classList.remove('on');
+				hm.style.transform = '';
 			},holdMs);
 		},
 		damageFlash() {
@@ -100,12 +100,12 @@ export function createHud() {
 			clearTimeout(damageTimer);
 			damageTimer = setTimeout(() => damageVignette.classList.remove('on'),220);
 		},
-		killfeed(text,good) {
+		kf(text,good) {
 			const entry = CE('div');
 			entry.className = good ? 'feed-good' : 'feed-bad';
 			entry.textContent = text;
-			killfeed.prepend(entry);
-			while (killfeed.children.length > 4) killfeed.removeChild(killfeed.lastChild);
+			kf.prepend(entry);
+			while (kf.children.length > 4) kf.removeChild(kf.lastChild);
 			setTimeout(() => entry.remove(),5000);
 		},
 		kill(killer,weapon,victim,good) {
@@ -195,37 +195,37 @@ export function createHud() {
 			c.restore();
 		},
 		showScoreboard(d) {
-			scoreboard.hidden = false;
+			sb.hidden = false;
 			const pips = d.history.map((h) => `<span class="${h === 'W' ? 'pip-w' : 'pip-l'}">●</span>`).join('');
 			let html = `<h2><span>EMBER ${d.won} — ${d.lost} RUST</span><span class="pips">${pips}</span></h2>`;
 			html += '<table><tr><th>PLAYER</th><th>K</th><th>D</th></tr>';
 			for (const r of d.rows) {
 				html += `<tr class="${r.team}${r.you ? ' you' : ''}${r.alive ? '' : ' dead'}"><td>${r.name}</td><td>${r.k}</td><td>${r.d}</td></tr>`;
 			}
-			scoreboard.innerHTML = `${html}</table>`;
+			sb.innerHTML = `${html}</table>`;
 		},
 		hideScoreboard() {
-			scoreboard.hidden = true;
+			sb.hidden = true;
 		},
 		showOverlay(mode,data = {}) {
-			overlay.hidden = false;
+			ov.hidden = false;
 			if (mode === 'buy') {
 				title.textContent = `Buy phase — Round ${data.round}`;
 				copy.textContent = 'Spend your round money. Click an item or press its number key, then start the round.';
 				play.textContent = 'Start round  [Enter]';
-				buyList.hidden = false;
+				bL.hidden = false;
 				buyMoney.hidden = false;
 				buyMoney.textContent = `Money: $${data.money}`;
-				buyList.innerHTML = '';
+				bL.innerHTML = '';
 				for (const item of BUY_ITEMS) {
-					const owned = data.loadout && (
-						(item.id === 'rifle' && data.loadout.primary === 'rifle')
-						|| (item.id === 'smg' && data.loadout.primary === 'smg')
-						|| (item.id === 'smg2' && data.loadout.primary === 'smg2')
-						|| (item.id === 'shotgun' && data.loadout.primary === 'shotgun')
-						|| (item.id === 'pistol' && data.loadout.primary === 'pistol')
-						|| (item.id === 'armour' && data.loadout.armour)
-						|| (item.id === 'helmet' && data.loadout.helmet)
+					const owned = data.lo && (
+						(item.id === 'rifle' && data.lo.primary === 'rifle')
+						|| (item.id === 'smg' && data.lo.primary === 'smg')
+						|| (item.id === 'smg2' && data.lo.primary === 'smg2')
+						|| (item.id === 'shotgun' && data.lo.primary === 'shotgun')
+						|| (item.id === 'pistol' && data.lo.primary === 'pistol')
+						|| (item.id === 'armour' && data.lo.armour)
+						|| (item.id === 'helmet' && data.lo.helmet)
 					);
 					const button = CE('button');
 					button.type = 'button';
@@ -233,10 +233,10 @@ export function createHud() {
 					button.dataset.buy = item.id;
 					button.disabled = data.money < item.price || owned;
 					button.innerHTML = `<b>[${item.key}] ${item.name}</b><span>${item.desc}</span><em>${owned ? 'OWNED' : item.price === 0 ? 'FREE' : '$' + item.price}</em>`;
-					buyList.appendChild(button);
+					bL.appendChild(button);
 				}
 			} else {
-				buyList.hidden = true;
+				bL.hidden = true;
 				buyMoney.hidden = true;
 				if (mode === 'start') {
 					title.textContent = 'Dustworks Yard';
@@ -259,7 +259,7 @@ export function createHud() {
 			play.focus();
 		},
 		hideOverlay() {
-			overlay.hidden = true;
+			ov.hidden = true;
 		},
 		onPlay(handler) {
 			playHandler = handler;

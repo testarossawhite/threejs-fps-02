@@ -52,7 +52,7 @@ export function createInput(canvas,onLockChange) {
 			state.lookY = 0;
 			return { x,y };
 		},
-		takePressed(code) {
+		tp(code) {
 			if (!pressed.has(code)) return false;
 			pressed.delete(code);
 			return true;

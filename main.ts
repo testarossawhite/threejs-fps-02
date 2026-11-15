@@ -14,7 +14,19 @@
 // pouch), weathers the container, crate and gun-metal textures with streaks,
 // stencils and panel seams, gives the walk a forward lean and a lateral sway,
 // and restores the yard's last details: rain puddles with a wet sheen, steel
-// rims on the barrels, gantry cross-braces and a sagging lamp cable. The game is this
+// rims on the barrels, gantry cross-braces and a sagging lamp cable. v7 is
+// the hands and habitat pass: the first-person grip is rebuilt with
+// segmented two-segment fingers, so the support hand wraps the handguard,
+// foregrip or pump of every gun and the trigger hand closes on the pistol
+// grip, through idle, sights, reload, inspect and the pump cycle. The yard
+// stops being one brick box: the perimeter mixes corrugated steel, raw
+// formwork concrete, faded painted bands, plank hoarding and a chain-link
+// stretch on posts, the backdrop buildings gain seeded facade variants
+// with boarded and cracked panes, a glass tower, stepped setbacks, roof
+// ducting and a scaffold on the hero block, and the zones fill with a
+// workbench and tools, uneven pallet stacks, a painted walkway with a worn
+// crossing, a break corner with table, chairs, cooler and barrel stove,
+// tarp-covered piles, fresh posters and a windsock. The game is this
 // directory's
 // game/ folder, plain static files the browser loads as ES modules with
 // three.js 0.187.0 from an import map, and this program hands it in: it copies
@@ -58,4 +70,4 @@ cpSync(shotsDir, join(out, 'screenshots'), { recursive: true });
 const dossier = buildDossier(out, { text_max_bytes: 163840, screenshots: { max: 4, max_bytes: 262144 }, game_max_files: 993, game_max_bytes: 50331648 });
 writeFileSync(join(out, 'dossier.json'), dossier);
 const shotBytes = shotNames.map((name) => `${name} ${statSync(join(shotsDir, name)).size}B`).join(', ');
-console.log(`dustworks-yard v6: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);
+console.log(`dustworks-yard v7: ${shotNames.length} screenshots (${shotBytes}), dossier ${dossier.length} bytes -> ${out}`);

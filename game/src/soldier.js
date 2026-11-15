@@ -12,7 +12,7 @@ export function buildSoldier(colors) {
 	const uniform = mat(colors.uniform,0.78,0.05);
 	const dark = mat('#2c2824',0.85,0.15);
 	const helmMat = mat(new Color(colors.uniform).multiplyScalar(0.55),0.8,0.05);
-	const gunmetal = mat('#3d4249',0.42,0.62);
+	const gm = mat('#3d4249',0.42,0.62);
 	const skin = mat('#d9b08c',0.6,0);
 	const visor = mat('#141a20',0.15,0.6);
 	const gog = mat('#1d2b33',0.08,0.75);
@@ -27,7 +27,7 @@ export function buildSoldier(colors) {
 		knee.position.y = -0.42;
 		const shin = M(new Cap(0.06,0.24,4,12),uniform,0,-0.19,0);
 		const pad = oval(0.068,10,8,1,1.15,0.55,dark,0,-0.03,-0.052);
-		const boot = M(new Cap(0.052,0.15,4,10),gunmetal,0,-0.408,-0.045);
+		const boot = M(new Cap(0.052,0.15,4,10),gm,0,-0.408,-0.045);
 		boot.rotation.x = P / 2;
 		knee.add(shin,boot,pad);
 		hip.add(thigh,knee);
@@ -45,7 +45,7 @@ export function buildSoldier(colors) {
 	const vestGeo = new LatheGeometry([[0.168,0.08],[0.182,0.14],[0.21,0.3],[0.217,0.4],[0.202,0.5]].map((p) => new Vector2(p[0],p[1])),18);
 	vestGeo.scale(1.22,1,0.78);
 	const vest = M(vestGeo,dark,0,0.84,0);
-	const chestRig = oval(0.16,12,10,1,0.68,0.3,gunmetal,0,1.235,-0.163);
+	const chestRig = oval(0.16,12,10,1,0.68,0.3,gm,0,1.235,-0.163);
 	for (let i = -1; i <= 1; i++) group.add(M(new Cap(0.03,0.055,3,8),dark,i * 0.105,1.07,-0.163));
 	const backpack = oval(0.16,12,10,1.02,1.28,0.6,uniform,0,1.15,0.175);
 	const backStrip = M(new Box(0.2,0.05,0.02),lightDot,0,1.3,0.242);
@@ -53,8 +53,8 @@ export function buildSoldier(colors) {
 	collar.rotation.x = P / 2;
 	const neck = M(new CylinderGeometry(0.048,0.056,0.1,10),skin,0,1.5,0);
 	function buildArm(side) {
-		const shoulder = new Group();
-		shoulder.position.set(0.265 * side,1.405,0);
+		const sh = new Group();
+		sh.position.set(0.265 * side,1.405,0);
 		const ball = M(new Sph(0.088,12,10),uniform);
 		const pad = M(new Sph(0.1,12,8,0,P * 2,0,P * 0.55),uniform,0,0.014,0);
 		const upper = M(new Cap(0.056,0.17,4,12),uniform,0,-0.145,0);
@@ -63,13 +63,13 @@ export function buildSoldier(colors) {
 		const fore = M(new Cap(0.047,0.15,4,12),uniform,0,-0.125,0);
 		const glove = oval(0.052,10,8,0.85,1.3,0.95,dark,0,-0.285,0);
 		elbow.add(fore,glove);
-		shoulder.add(ball,pad,upper,elbow);
-		return { shoulder,elbow };
+		sh.add(ball,pad,upper,elbow);
+		return { sh,elbow };
 	}
 	const armL = buildArm(-1);
 	const armR = buildArm(1);
-	armL.shoulder.add(M(new CylinderGeometry(0.067,0.067,0.07,12),accentMat,0,-0.1,0));
-	armL.shoulder.add(M(new Box(0.05,0.03,0.05),lightDot,0,0.105,0));
+	armL.sh.add(M(new CylinderGeometry(0.067,0.067,0.07,12),accentMat,0,-0.1,0));
+	armL.sh.add(M(new Box(0.05,0.03,0.05),lightDot,0,0.105,0));
 	const headGeo = new Sph(0.117,16,12);
 	headGeo.scale(0.94,1.16,0.98);
 	const head = M(headGeo,skin,0,1.635,0);
@@ -95,23 +95,23 @@ export function buildSoldier(colors) {
 	}
 	const gun = new Group();
 	gun.position.set(0.2,1.14,-0.28);
-	const receiver = M(new Box(0.07,0.11,0.5),gunmetal);
-	const barrel = M(new CylinderGeometry(0.024,0.024,0.32,8),gunmetal,0,0.02,-0.4);
+	const receiver = M(new Box(0.07,0.11,0.5),gm);
+	const barrel = M(new CylinderGeometry(0.024,0.024,0.32,8),gm,0,0.02,-0.4);
 	barrel.rotation.x = P / 2;
 	const magazine = M(new Box(0.05,0.17,0.08),dark,0,-0.13,-0.02);
 	magazine.rotation.x = 0.25;
 	const stock = M(new Box(0.06,0.09,0.2),dark,0,-0.01,0.33);
 	stock.rotation.x = 0.14;
-	const sight = M(new Box(0.03,0.06,0.09),gunmetal,0,0.09,-0.06);
+	const sight = M(new Box(0.03,0.06,0.09),gm,0,0.09,-0.06);
 	const guard = M(new CylinderGeometry(0.038,0.038,0.22,8),dark,0,-0.045,-0.3);
 	guard.rotation.x = P / 2;
-	const post = M(new Box(0.015,0.05,0.015),gunmetal,0,0.06,-0.52);
-	const mz = M(new CylinderGeometry(0.03,0.024,0.08,8),gunmetal,0,0.02,-0.57);
+	const post = M(new Box(0.015,0.05,0.015),gm,0,0.06,-0.52);
+	const mz = M(new CylinderGeometry(0.03,0.024,0.08,8),gm,0,0.02,-0.57);
 	mz.rotation.x = P / 2;
 	gun.add(receiver,barrel,magazine,stock,sight,guard,post,mz);
 	group.add(
 		torso,head,legL.hip,legR.hip,gun,pelvis,vest,chestRig,backpack,
-		backStrip,collar,neck,armL.shoulder,armR.shoulder,
+		backStrip,collar,neck,armL.sh,armR.sh,
 	);
 	const mats = [];
 	group.traverse((mesh) => {
@@ -144,9 +144,9 @@ export function animateSoldier(soldier,o) {
 	soldier.legR.knee.rotation.x = -Math.max(0,Math.sin(o.phase + P + 2.3)) * 0.85 * blend - 0.03;
 	const bob = Math.abs(Math.sin(o.phase)) * 0.035 * blend;
 	const armBob = Math.sin(o.phase * 2) * 0.035 * blend;
-	soldier.armR.shoulder.rotation.set(0.58 + armBob,0,-0.3);
+	soldier.armR.sh.rotation.set(0.58 + armBob,0,-0.3);
 	soldier.armR.elbow.rotation.x = 0.82;
-	soldier.armL.shoulder.rotation.set(0.88 + armBob,0,0.58);
+	soldier.armL.sh.rotation.set(0.88 + armBob,0,0.58);
 	soldier.armL.elbow.rotation.x = 0.5;
 	soldier.gun.position.y = 1.14 + Math.sin(o.phase * 2) * 0.012 * blend;
 	soldier.group.rotation.x = -o.fall * 1.45 - o.flinch * 0.13 - blend * 0.045;

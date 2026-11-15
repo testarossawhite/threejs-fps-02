@@ -53,24 +53,34 @@ function rigMats(accent) {
 		sleeve: M({ map: camoTexture(),roughness: 0.9,metalness: 0 }),
 	};
 }
-function buildGlove(m) {
+function buildGlove(m,side,pose) {
 	const hand = new T.Group();
 	const palm = new MS(new T.SphereGeometry(0.05,10,8),m.glove);
-	palm.scale.set(0.75,0.36,0.95);
+	palm.scale.set(0.78,0.38,0.98);
 	hand.add(palm);
+	const curl = pose === 0 ? [1.3,1.5] : pose === 1 ? [-1.35,-0.6] : [-0.85,-1.15];
 	for (let i = 0; i < 4; i++) {
-		const finger = new MS(new T.BoxGeometry(0.016,0.055,0.02),m.glove);
-		finger.position.set(-0.027 + i * 0.018,-0.038,-0.028);
-		finger.rotation.x = 0.5;
-		hand.add(finger);
+		const f = new T.Group();
+		f.position.set(-0.027 + i * 0.018,0.004,-0.042);
+		f.rotation.x = curl[0];
+		const s1 = new MS(new T.BoxGeometry(0.015,0.017,0.04),m.glove);
+		s1.position.z = -0.02;
+		const tip = new T.Group();
+		tip.position.z = -0.04;
+		tip.rotation.x = curl[1];
+		const s2 = new MS(new T.BoxGeometry(0.014,0.016,0.034),m.glove);
+		s2.position.z = -0.017;
+		tip.add(s2);
+		f.add(s1,tip);
+		hand.add(f);
 	}
-	const thumb = new MS(new T.BoxGeometry(0.018,0.045,0.02),m.glove);
-	thumb.position.set(0.045,-0.012,0.012);
-	thumb.rotation.z = -0.5;
+	const thumb = new MS(new T.BoxGeometry(0.017,0.02,0.05),m.glove);
+	thumb.position.set(-0.048 * side,-0.006,-0.018);
+	thumb.rotation.set(pose === 1 ? -0.5 : -0.15,-0.35 * side,0);
 	hand.add(thumb);
 	return hand;
 }
-function buildArm(m,yawSign) {
+function buildArm(m,yawSign,pose) {
 	const arm = new T.Group();
 	const fore = new MS(new T.CapsuleGeometry(0.05,0.3,4,10),m.sleeve);
 	fore.position.set(0.03 * yawSign,-0.045,0.21);
@@ -78,7 +88,7 @@ function buildArm(m,yawSign) {
 	const cuff = new MS(new T.CylinderGeometry(0.06,0.066,0.1,10),m.polymer);
 	cuff.position.set(0.008 * yawSign,-0.012,0.075);
 	cuff.rotation.set(1.15,0.38 * yawSign,0);
-	arm.add(fore,cuff,buildGlove(m));
+	arm.add(fore,cuff,buildGlove(m,yawSign,pose));
 	return arm;
 }
 function buildVM(def,m) {
@@ -126,6 +136,10 @@ function buildVM(def,m) {
 	let bolt;
 	let gripL;
 	let wellL;
+	let gripR;
+	let rotR = 0;
+	let rotL = 0;
+	let poseL = 0;
 	let magTravel = 0.13;
 	if (def.short === 'P-9') {
 		part(model,0.05,0.055,0.21,m.polymer,0,-0.015,-0.03);
@@ -150,7 +164,11 @@ function buildVM(def,m) {
 		mag = part(model,0.04,0.115,0.054,m.metal,0,-0.2,0.068,0.26);
 		part(mag,0.05,0.016,0.064,m.polymer,0,-0.062,0.002);
 		magTravel = 0.1;
-		gripL = new V3(-0.012,-0.125,0.062);
+		gripL = new V3(-0.016,-0.148,0.052);
+		rotL = 0.35;
+		poseL = 2;
+		gripR = new V3(0.005,-0.098,0.06);
+		rotR = 0.26;
 		wellL = new V3(-0.01,-0.21,0.07);
 		muzzleZ = -0.26;
 	} else if (def.short === 'Dusk-9') {
@@ -169,7 +187,10 @@ function buildVM(def,m) {
 		for (const sx of [-1,1]) tube(model,0.011,0.15,m.steel,0.02 * sx,-0.005,0.18);
 		part(model,0.06,0.07,0.045,m.metal,0,0.005,0.115);
 		part(model,0.075,0.11,0.024,m.polymer,0,-0.005,0.265,0.08);
-		gripL = new V3(0,-0.1,-0.33);
+		gripL = new V3(0,-0.058,-0.33);
+		poseL = 0;
+		gripR = new V3(0.005,-0.1,0.075);
+		rotR = 0.35;
 		wellL = new V3(-0.01,-0.17,-0.05);
 		muzzleZ = -0.6;
 	} else if (def.short === 'KR-9') {
@@ -190,7 +211,11 @@ function buildVM(def,m) {
 		mag = curveMag(model,m.camo,0.046,0.065,0.06,0,-0.055,0.15,0.04);
 		bolt = part(model,0.014,0.02,0.05,m.steel,0.045,0.032,-0.04);
 		part(model,0.04,0.085,0.042,m.polymer,0,-0.08,-0.29,0.18);
-		gripL = new V3(0,-0.095,-0.29);
+		gripL = new V3(0,-0.09,-0.27);
+		rotL = 0.5;
+		poseL = 1;
+		gripR = new V3(0.005,-0.1,0.016);
+		rotR = 0.4;
 		wellL = new V3(-0.01,-0.16,0.15);
 		muzzleZ = -0.62;
 	} else if (def.short === 'BR-12') {
@@ -212,7 +237,10 @@ function buildVM(def,m) {
 		part(model,0.062,0.115,0.02,m.glove,0,-0.014,0.412,0.05);
 		mag = part(model,0.04,0.03,0.09,m.glove,0,-0.055,-0.02);
 		magTravel = 0.05;
-		gripL = new V3(0,-0.05,-0.3);
+		gripL = new V3(0,-0.078,-0.3);
+		poseL = 0;
+		gripR = new V3(0.005,-0.1,0.14);
+		rotR = 0.4;
 		wellL = new V3(-0.01,-0.12,-0.02);
 		muzzleZ = -0.59;
 	} else {
@@ -242,16 +270,21 @@ function buildVM(def,m) {
 		part(model,0.055,0.1,0.2,m.polymer,0,0.002,0.31,0.05);
 		part(model,0.05,0.032,0.13,m.polymer,0,0.062,0.29);
 		part(model,0.058,0.115,0.02,m.glove,0,-0.004,0.415,0.05);
-		gripL = new V3(0,-0.065,-0.38);
+		gripL = new V3(0,-0.062,-0.36);
+		rotL = 0.45;
+		poseL = 1;
+		gripR = new V3(0.005,-0.104,0.102);
+		rotR = 0.42;
 		wellL = new V3(-0.01,-0.17,-0.03);
 		muzzleZ = -0.77;
 	}
-	const handR = buildArm(m,1);
-	handR.position.set(0.005,-0.1,def.short === 'P-9' ? 0.055 : 0.105);
-	if (def.short !== 'P-9') handR.rotation.x = 0.28;
+	const handR = buildArm(m,1,1);
+	handR.position.copy(gripR);
+	handR.rotation.x = rotR;
 	model.add(handR);
-	const handL = buildArm(m,-1);
+	const handL = buildArm(m,-1,poseL);
 	handL.position.copy(gripL);
+	handL.rotation.x = rotL;
 	model.add(handL);
 	model.position.set(0.24,-0.165,-0.42);
 	return {
@@ -285,7 +318,7 @@ export function createWeapons(camera) {
 		mag: WEAPONS.pistol.mag,
 		reserve: WEAPONS.pistol.reserve,
 		cooldown: 0,
-		reloadLeft: 0,
+		rL: 0,
 		flash: 0,
 		kick: 0,
 		ads: 0,
@@ -314,7 +347,7 @@ export function createWeapons(camera) {
 		state.mag = WEAPONS[name].mag;
 		state.reserve = WEAPONS[name].reserve;
 		state.cooldown = 0;
-		state.reloadLeft = 0;
+		state.rL = 0;
 		for (const key of Object.keys(built)) {
 			built[key].model.visible = key === name;
 			built[key].mag.position.y = built[key].magBaseY;
@@ -333,7 +366,7 @@ export function createWeapons(camera) {
 		state.cooldown = Math.max(0,state.cooldown - dt);
 		state.flash = Math.max(0,state.flash - dt);
 		state.kick += (0 - state.kick) * Math.min(1,dt * 14);
-		state.ads += ((aiming && state.reloadLeft === 0 ? 1 : 0) - state.ads) * Math.min(1,dt * 11);
+		state.ads += ((aiming && state.rL === 0 ? 1 : 0) - state.ads) * Math.min(1,dt * 11);
 		state.inspectT = Math.max(0,state.inspectT - dt);
 		state.pumpT = Math.max(0,state.pumpT - dt);
 		const r = rig();
@@ -354,13 +387,13 @@ export function createWeapons(camera) {
 		let dip = 0;
 		let magOut = 0;
 		let rack = 0;
-		if (state.reloadLeft > 0) {
-			state.reloadLeft = Math.max(0,state.reloadLeft - dt);
-			const p = 1 - state.reloadLeft / def().reload;
+		if (state.rL > 0) {
+			state.rL = Math.max(0,state.rL - dt);
+			const p = 1 - state.rL / def().reload;
 			dip = -0.55 * Math.pow(Math.sin(P * Math.min(1,p * 1.08)),1.2);
 			magOut = ss(0.12,0.3,p) * (1 - ss(0.55,0.78,p));
 			rack = ss(0.8,0.87,p) * (1 - ss(0.9,0.99,p));
-			if (state.reloadLeft === 0) {
+			if (state.rL === 0) {
 				const need = def().mag - state.mag;
 				const take = Math.min(need,state.reserve);
 				state.mag += take;
@@ -389,13 +422,13 @@ export function createWeapons(camera) {
 		step,
 		select,
 		ready() {
-			return state.mag > 0 && state.cooldown === 0 && state.reloadLeft === 0 && state.inspectT === 0;
+			return state.mag > 0 && state.cooldown === 0 && state.rL === 0 && state.inspectT === 0;
 		},
 		adsAmount() {
 			return state.ads;
 		},
 		inspect() {
-			if (state.reloadLeft === 0 && state.inspectT === 0) state.inspectT = 1.15;
+			if (state.rL === 0 && state.inspectT === 0) state.inspectT = 1.15;
 		},
 		pullTrigger() {
 			state.cooldown = def().gap;
@@ -409,24 +442,24 @@ export function createWeapons(camera) {
 			return true;
 		},
 		reload() {
-			if (state.reloadLeft > 0 || state.mag === def().mag || state.reserve === 0) return;
-			state.reloadLeft = def().reload;
+			if (state.rL > 0 || state.mag === def().mag || state.reserve === 0) return;
+			state.rL = def().reload;
 		},
 		spread(speed) {
 			const d = def();
 			return d.spreadStill + Math.min(1,speed / 5.2) * d.spreadMove;
 		},
-		equip(loadout) {
-			select(loadout.primary);
+		equip(lo) {
+			select(lo.primary);
 			state.mag = def().mag;
 			state.reserve = def().reserve;
 			state.cooldown = 0;
-			state.reloadLeft = 0;
+			state.rL = 0;
 			state.flash = 0;
 			state.kick = 0;
-			state.frags = loadout.frags;
-			state.smokes = loadout.smokes;
-			state.flashes = loadout.flashes ?? 0;
+			state.frags = lo.frags;
+			state.smokes = lo.smokes;
+			state.flashes = lo.flashes ?? 0;
 			state.selectedGrenade = state.frags > 0 ? 'frag' : state.smokes > 0 ? 'smoke' : 'flash';
 		},
 	};
